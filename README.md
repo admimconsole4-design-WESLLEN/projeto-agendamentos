@@ -1,35 +1,66 @@
 # Sistema de Reserva de Equipamentos
 
-Sistema completo de gerenciamento de reservas de equipamentos com interface moderna e funcionalidades avançadas.
+Sistema completo de gerenciamento de reservas de equipamentos com autenticação e controle de horários livres.
+
+## 🚀 Novidades da Última Versão
+
+### ✅ Horários Livres
+- Escolha QUALQUER horário de início e fim
+- Exemplos: 8:00-9:30, 14:00-16:45, 10:15-12:00
+- Não está mais limitado às faixas pré-definidas
+
+### ✅ Calendário Completo
+- Todas as datas futuras liberadas
+- Reserve com antecedência ilimitada
+
+### ✅ Sistema de Autenticação
+- Login obrigatório para fazer reservas
+- Painel administrativo protegido por autenticação
+- Apenas admins podem gerenciar equipamentos
+
+## 📖 Configuração Inicial
+
+### 1. Criar Primeiro Administrador
+
+**IMPORTANTE**: Leia o arquivo [INSTRUCOES_ADMIN.md](./INSTRUCOES_ADMIN.md) para instruções detalhadas.
+
+**Resumo rápido:**
+1. Acesse `/auth` e crie uma conta
+2. Execute no banco de dados: 
+   ```sql
+   SELECT public.make_user_admin('seu@email.com');
+   ```
+3. Faça login e acesse `/admin`
 
 ## 🚀 Tecnologias
 
 - **Frontend**: React 18 + Vite + TypeScript
 - **Estilização**: Tailwind CSS + shadcn/ui
-- **Backend**: Lovable Cloud (PostgreSQL + Edge Functions)
-- **ORM**: Supabase Client
-- **Validações**: Zod
+- **Backend**: Lovable Cloud (PostgreSQL + Supabase Auth)
+- **Autenticação**: Supabase Auth com RLS
+- **Validações**: Zod + PostgreSQL Constraints
 - **Datas**: date-fns
 - **UI Components**: Radix UI
 
 ## ✨ Funcionalidades
 
-### Para Usuários
-- 📅 **Calendário Visual**: Selecione datas e visualize disponibilidade
-- 🎥 **Lista de Equipamentos**: Veja todos equipamentos com status (disponível/ocupado)
-- ✅ **Reserva Fácil**: Formulário intuitivo com validações
-- 🔒 **Proteção contra Conflitos**: Sistema impede dupla reserva automática
-- 📱 **Design Responsivo**: Funciona em desktop, tablet e mobile
+### Para Usuários Autenticados
+- 📅 **Calendário Completo**: Todas as datas futuras disponíveis
+- ⏰ **Horários Livres**: Escolha qualquer horário (ex: 8:00-9:30, 14:15-16:45)
+- 🎥 **Lista de Equipamentos**: Veja status em tempo real
+- ✅ **Reserva Fácil**: Formulário com validações
+- 🔒 **Proteção Automática**: Sistema impede dupla reserva
 
 ### Para Administradores
-- ➕ **Gerenciar Equipamentos**: Adicionar e remover equipamentos
-- ⏰ **Configurar Horários**: Definir faixas horárias (manhã, tarde, noite)
-- 📊 **Visualizar Reservas**: Lista completa com filtros
-- 🗑️ **Cancelar Reservas**: Gerenciar cancelamentos
+- ➕ **Gerenciar Equipamentos**: Adicionar, editar, remover
+- ⏰ **Configurar Horários**: Adicionar faixas (opcional, apenas referência)
+- 📊 **Ver Todas Reservas**: Lista completa com filtros
+- 🗑️ **Cancelar Qualquer Reserva**: Controle total
+- 👤 **Controle de Acesso**: Rota protegida por autenticação
 
 ## 🗄️ Estrutura do Banco de Dados
 
-### Tabelas
+### Tabelas Principais
 
 #### `equipments`
 ```sql
@@ -39,12 +70,12 @@ Sistema completo de gerenciamento de reservas de equipamentos com interface mode
 - created_at, updated_at (TIMESTAMP)
 ```
 
-#### `time_slots`
+#### `time_slots` (Opcional/Referência)
 ```sql
 - id (UUID, PK)
 - start_time (TIME)
 - end_time (TIME)
-- label (TEXT, opcional - ex: "Manhã")
+- label (TEXT) - ex: "Manhã", "Tarde"
 - created_at, updated_at (TIMESTAMP)
 ```
 
@@ -55,16 +86,18 @@ Sistema completo de gerenciamento de reservas de equipamentos com interface mode
 - name (TEXT)
 - phone (TEXT)
 - date (DATE)
-- start_time (TIME)
-- end_time (TIME)
+- start_time (TIME) - QUALQUER horário
+- end_time (TIME) - QUALQUER horário
 - created_at, updated_at (TIMESTAMP)
 ```
 
-### Índices e Constraints
-- Índice otimizado para consultas de disponibilidade
-- CHECK constraints para validar horários
-- Proteção contra reservas no passado
-- ON DELETE RESTRICT para equipamentos com reservas
+#### `user_roles` (Autenticação)
+```sql
+- id (UUID, PK)
+- user_id (UUID, FK -> auth.users)
+- role (app_role ENUM: 'admin', 'user')
+- created_at (TIMESTAMP)
+```
 
 ## 🔒 Proteção contra Race Conditions
 
@@ -77,21 +110,32 @@ LOCK TABLE reservations IN SHARE ROW EXCLUSIVE MODE;
 ```
 
 ### Como Funciona
-1. Cliente tenta criar reserva
+1. Usuário tenta criar reserva
 2. Sistema inicia transação e aplica lock
 3. Verifica sobreposição de horários
 4. Se livre: cria reserva
-5. Se ocupado: retorna erro 409 (Conflito)
+5. Se ocupado: retorna erro
 6. Libera lock após commit/rollback
 
 ## 📋 Regras de Negócio
 
 ### Validações
+- ✅ Login obrigatório para reservar
 - ✅ Nome obrigatório (não vazio)
 - ✅ Telefone: 10-15 dígitos
 - ✅ Horário início < horário fim
 - ✅ Data não pode ser no passado
-- ✅ Equipamento deve estar livre no intervalo completo
+- ✅ Equipamento livre no intervalo completo
+- ✅ Qualquer horário permitido (ex: 8:15, 14:45, 20:30)
+
+### Permissões (RLS Policies)
+- **Público**: Pode visualizar equipamentos e time_slots
+- **Usuários Autenticados**: Podem criar reservas
+- **Admins**: 
+  - CRUD completo em equipamentos
+  - CRUD completo em time_slots
+  - Cancelar qualquer reserva
+  - Ver todas as reservas
 
 ### Verificação de Conflitos
 ```sql
@@ -101,40 +145,65 @@ NOT (end_time <= start_time_novo OR start_time >= end_time_novo)
 
 ### Remoção de Equipamentos
 - ❌ **Bloqueada** se houver reservas ativas
-- Retorna erro explicativo ao tentar remover
+- Retorna erro com mensagem explicativa
 
 ## 🚦 Como Usar
 
-### Acesso Público (Fazer Reservas)
+### 1. Acesso Público (Visualização Apenas)
+- Qualquer pessoa pode ver equipamentos
+- Pode visualizar calendário
+- **Para reservar**: precisa criar conta e fazer login
 
-1. **Selecione a Data** no calendário
-2. **Visualize Equipamentos** disponíveis (badge verde)
-3. **Clique em "Reservar"** no equipamento desejado
-4. **Preencha o Formulário**:
-   - Nome completo
-   - Telefone (11) 98888-7777
-   - Selecione horário início e fim
-5. **Confirme** - Sistema valida e cria reserva
+### 2. Criar Conta e Fazer Reservas
 
-### Painel Admin
+#### Passo a Passo:
 
-Acesse via botão "Admin" no topo da página.
+1. **Criar Conta**:
+   - Clique em "Entrar" no topo da página
+   - Vá para aba "Criar Conta"
+   - Preencha email e senha (mínimo 6 caracteres)
+   - Clique "Criar Conta"
+   - Você receberá confirmação
 
-#### Gerenciar Equipamentos
-1. Vá para aba "Equipamentos"
-2. Preencha nome e descrição
-3. Clique "Adicionar Equipamento"
-4. Para remover: clique no ícone de lixeira
+2. **Fazer Login**:
+   - Use email e senha cadastrados
+   - Você será redirecionado automaticamente para a página principal
 
-#### Configurar Horários
-1. Vá para aba "Horários"
+3. **Fazer Reserva**:
+   - Selecione a **data** no calendário
+   - Escolha um **equipamento disponível** (badge verde)
+   - Clique no botão **"Reservar"**
+   - No formulário, preencha:
+     - **Nome**: Seu nome completo
+     - **Telefone**: (11) 98888-7777
+     - **Horário início**: Ex: 08:00, 14:30, 09:15
+     - **Horário fim**: Ex: 09:30, 16:45, 11:00
+   - Clique em **"Confirmar Reserva"**
+
+### 3. Painel Admin (Apenas Administradores)
+
+**⚠️ Configuração Necessária**: Antes de acessar, configure o primeiro admin seguindo [INSTRUCOES_ADMIN.md](./INSTRUCOES_ADMIN.md)
+
+#### Funcionalidades Admin:
+
+**Gerenciar Equipamentos**:
+1. Acesse `/admin` (botão "Admin" no topo)
+2. Vá para aba "Equipamentos"
+3. Preencha nome e descrição
+4. Clique "Adicionar Equipamento"
+5. Para remover: clique no ícone de lixeira
+
+**Configurar Horários** (Opcional):
+1. Aba "Horários"
 2. Defina horário início e fim
-3. Opcional: adicione etiqueta (ex: "Manhã")
+3. Adicione etiqueta (ex: "Manhã")
 4. Clique "Adicionar Faixa"
 
-#### Visualizar/Cancelar Reservas
-1. Vá para aba "Reservas"
-2. Veja lista completa com todos os detalhes
+**Nota**: As faixas são apenas referência visual. Usuários podem escolher QUALQUER horário.
+
+**Visualizar/Cancelar Reservas**:
+1. Aba "Reservas"
+2. Veja lista completa de todas as reservas
 3. Para cancelar: clique no ícone de lixeira
 
 ## 🎨 Design System
@@ -149,8 +218,9 @@ Acesse via botão "Admin" no topo da página.
 - **Cards**: Equipamentos e seções
 - **Badges**: Status de disponibilidade
 - **Modal**: Formulário de reserva
-- **Calendar**: Seletor de datas
+- **Calendar**: Seletor de datas (sem limites)
 - **Tables**: Lista de reservas e admin
+- **Inputs Time**: Escolha livre de horários
 
 ## 📦 Seed Data (Dados Iniciais)
 
@@ -163,52 +233,59 @@ O sistema já vem com:
 - Notebook (MacBook Pro 16")
 - Tripé (Manfrotto)
 
-### Faixas Horárias
+### Faixas Horárias (Referência)
 - 07:00 - 11:20 (Manhã)
 - 13:00 - 17:00 (Tarde)
 - 18:00 - 21:00 (Noite)
 
-## 🧪 Testes e Validações
+**Nota**: Essas faixas são apenas sugestões. Usuários podem escolher qualquer horário.
 
-### Casos de Teste Principais
+## 🧪 Casos de Teste
 
-1. **Reserva Simultânea**
-   - Duas pessoas tentam reservar mesmo equipamento/horário
-   - ✅ Apenas uma reserva é criada
-   - ❌ Segunda recebe erro 409
+### 1. Reserva Simultânea
+- Duas pessoas tentam reservar mesmo equipamento/horário
+- ✅ Apenas uma reserva é criada
+- ❌ Segunda recebe erro de conflito
 
-2. **Sobreposição Parcial**
-   - Reserva A: 08:00-10:00
-   - Tentativa B: 09:00-11:00
-   - ❌ Bloqueado (sobreposição)
+### 2. Sobreposição Parcial
+- Reserva A: 08:00-10:00
+- Tentativa B: 09:00-11:00
+- ❌ Bloqueado (sobreposição)
 
-3. **Remoção com Reservas**
-   - Tentar remover equipamento reservado
-   - ❌ Erro: "existem reservas ativas"
+### 3. Horários Livres
+- Reserva A: 08:15-09:45
+- Reserva B: 14:30-16:45
+- ✅ Ambas permitidas
 
-4. **Validação de Formulário**
-   - Nome vazio → erro
-   - Telefone inválido → erro
-   - Horário fim < início → erro
+### 4. Remoção com Reservas
+- Tentar remover equipamento reservado
+- ❌ Erro: "existem reservas ativas"
+
+### 5. Proteção de Acesso
+- Usuário não-admin tenta acessar `/admin`
+- ❌ Redirecionado para home
 
 ## 🔧 Estrutura do Código
 
 ```
 src/
 ├── components/
-│   ├── ui/              # Componentes shadcn/ui
+│   ├── ui/                  # Componentes shadcn/ui
+│   ├── AuthGuard.tsx        # Proteção de rotas
 │   ├── EquipmentCard.tsx    # Card de equipamento
-│   ├── ReservationModal.tsx # Modal de reserva
+│   ├── ReservationModal.tsx # Modal de reserva (horários livres)
 │   └── ReservationsList.tsx # Tabela de reservas
 ├── pages/
-│   ├── Home.tsx        # Página principal (calendário)
-│   ├── Admin.tsx       # Painel administrativo
-│   └── NotFound.tsx    # 404
+│   ├── Home.tsx             # Página principal
+│   ├── Admin.tsx            # Painel admin (protegido)
+│   ├── Auth.tsx             # Login/Signup
+│   └── NotFound.tsx         # 404
 ├── lib/
-│   ├── supabase.ts     # Funções de API
-│   └── utils.ts        # Utilitários
+│   ├── auth.ts              # Funções de autenticação
+│   ├── supabase.ts          # Funções de API
+│   └── utils.ts             # Utilitários
 └── integrations/
-    └── supabase/       # Cliente auto-gerado
+    └── supabase/            # Cliente auto-gerado
 ```
 
 ## 📝 Exemplos de Uso da API
@@ -221,9 +298,9 @@ await createReservation(
   "equipment-uuid",
   "João Silva",
   "11988887777",
-  "2025-12-01",
-  "07:30:00",
-  "09:00:00"
+  "2025-12-15",
+  "08:15:00",  // Qualquer horário!
+  "10:45:00"   // Qualquer horário!
 );
 ```
 
@@ -233,81 +310,121 @@ import { checkEquipmentAvailability } from "@/lib/supabase";
 
 const isAvailable = await checkEquipmentAvailability(
   "equipment-uuid",
-  "2025-12-01",
-  "07:30:00",
-  "09:00:00"
+  "2025-12-15",
+  "14:30:00",
+  "16:45:00"
 );
 ```
 
-### Listar Equipamentos
+### Verificar se é Admin
 ```typescript
-import { getEquipments } from "@/lib/supabase";
+import { isAdmin } from "@/lib/auth";
 
-const equipments = await getEquipments();
+const adminStatus = await isAdmin(userId);
 ```
+
+## 🔐 Segurança
+
+### Row Level Security (RLS)
+- Todas as tabelas têm RLS habilitado
+- Políticas específicas por role (admin/user)
+- Queries protegidas pelo Supabase
+
+### Validações
+- ✅ Server-side (PostgreSQL constraints + functions)
+- ✅ Client-side (React forms + Zod)
+- ✅ Sanitização de inputs
+- ✅ Proteção contra SQL injection
+- ✅ Auth tokens gerenciados automaticamente
+
+### Funções Seguras
+- `SET search_path = public` em todas as funções
+- `SECURITY DEFINER` apropriado
+- Locks de transação para concorrência
+- Verificação de roles antes de operações críticas
 
 ## 🌐 SEO e Acessibilidade
 
 - ✅ Meta tags otimizadas
 - ✅ Títulos semânticos (H1, H2)
 - ✅ Labels em formulários
-- ✅ Botões com aria-labels
 - ✅ Navegação por teclado
 - ✅ Contraste adequado (WCAG AA)
-
-## 🔐 Segurança
-
-### Row Level Security (RLS)
-- Todas as tabelas têm RLS habilitado
-- Políticas públicas (sem autenticação nesta versão)
-- Queries protegidas pelo Supabase
-
-### Validações
-- ✅ Server-side (PostgreSQL constraints)
-- ✅ Client-side (React forms)
-- ✅ Sanitização de inputs
-- ✅ Proteção contra SQL injection (Supabase client)
-
-### Funções de Segurança
-- `SET search_path = public` em todas as funções
-- `SECURITY DEFINER` apropriado
-- Locks de transação para concorrência
 
 ## 🚀 Deploy
 
 O sistema roda automaticamente no Lovable Cloud:
-- Frontend hospedado na Lovable
-- Backend gerenciado automaticamente
-- Banco PostgreSQL provisionado
-- Edge Functions deployadas
+- ✅ Frontend hospedado
+- ✅ Backend PostgreSQL gerenciado
+- ✅ Autenticação configurada
+- ✅ RLS policies aplicadas
 
-## 📖 Próximas Funcionalidades (Opcionais)
+## 📖 Próximas Funcionalidades (Sugestões)
 
-- [ ] Sistema de autenticação de usuários
-- [ ] Notificações por email/SMS
-- [ ] Exportar reservas para CSV
-- [ ] Calendário por equipamento
-- [ ] Relatórios e estatísticas
+- [ ] Notificações por email após reserva
+- [ ] Exportar reservas para CSV/Excel
+- [ ] Calendário visual por equipamento
+- [ ] Histórico de reservas do usuário
+- [ ] Sistema de avaliação de equipamentos
+- [ ] Reservas recorrentes
 - [ ] Multi-idioma
 - [ ] Temas personalizados
+- [ ] App mobile (PWA)
 
 ## 🆘 Troubleshooting
 
+### "Você precisa estar logado para fazer uma reserva"
+- ✅ Normal se não estiver logado
+- Solução: Clique em "Entrar" e faça login/cadastro
+
 ### "Equipamento já reservado"
 - ✅ Normal: outro usuário reservou primeiro
-- Solução: escolha outro horário
+- Solução: escolha outro horário ou equipamento
 
 ### Não consigo remover equipamento
 - ✅ Normal: existem reservas ativas
-- Solução: cancele as reservas primeiro
+- Solução: cancele as reservas primeiro (no painel admin)
 
-### Calendário não atualiza
-- Solução: Recarregue a página (F5)
+### Não vejo o botão "Admin"
+- Verifique se sua conta é admin
+- Execute: `SELECT public.make_user_admin('seu@email.com');`
+- Faça logout e login novamente
 
-## 📄 Licença
+### Erro "requested path is invalid" no login
+- Verifique configurações de URL no Lovable Cloud
+- Vá até Backend → Auth Settings → Site URL
 
-Este projeto foi criado para fins educacionais e pode ser usado livremente.
+### Calendário não atualiza após reserva
+- Recarregue a página (F5)
+- Verifique se a reserva foi criada (aba Admin → Reservas)
+
+## 📞 Contato e Suporte
+
+Para problemas técnicos:
+1. Verifique console do navegador (F12)
+2. Veja logs do backend no Lovable Cloud
+3. Confirme que seguiu todas as etapas de configuração
+4. Leia o [INSTRUCOES_ADMIN.md](./INSTRUCOES_ADMIN.md)
+
+## 📄 Arquivos Importantes
+
+- `README.md` - Este arquivo
+- `INSTRUCOES_ADMIN.md` - Como configurar administradores
+- `src/lib/auth.ts` - Lógica de autenticação
+- `src/lib/supabase.ts` - Funções de banco de dados
+- `src/components/AuthGuard.tsx` - Proteção de rotas
+
+## 📊 Estatísticas do Projeto
+
+- **Linhas de código**: ~2500+ linhas
+- **Componentes React**: 12+
+- **Páginas**: 4 (Home, Admin, Auth, NotFound)
+- **Tabelas DB**: 4 (equipments, reservations, time_slots, user_roles)
+- **Funções DB**: 3 (update_updated_at, check_reservation_conflict, is_admin)
+- **RLS Policies**: 12+
 
 ---
 
 **Desenvolvido com ❤️ usando Lovable Cloud**
+
+Sistema completo de ponta a ponta: Frontend React + Backend PostgreSQL + Autenticação Supabase

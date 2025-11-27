@@ -3,21 +3,19 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import type { Equipment, TimeSlot } from "@/lib/supabase";
+import type { Equipment } from "@/lib/supabase";
 import { toast } from "sonner";
 
 interface ReservationModalProps {
   open: boolean;
   onClose: () => void;
   equipment: Equipment | null;
-  timeSlots: TimeSlot[];
   onSubmit: (data: {
     equipmentId: string;
     name: string;
@@ -32,7 +30,6 @@ export const ReservationModal = ({
   open,
   onClose,
   equipment,
-  timeSlots,
   onSubmit,
 }: ReservationModalProps) => {
   const [name, setName] = useState("");
@@ -148,6 +145,7 @@ export const ReservationModal = ({
                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
                     locale={ptBR}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -156,36 +154,30 @@ export const ReservationModal = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="startTime">Horário Início *</Label>
-                <Select value={startTime} onValueChange={setStartTime}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Início" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={`start-${slot.id}`} value={slot.start_time}>
-                        {slot.start_time.substring(0, 5)} {slot.label && `(${slot.label})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
               </div>
               
               <div className="grid gap-2">
                 <Label htmlFor="endTime">Horário Fim *</Label>
-                <Select value={endTime} onValueChange={setEndTime}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Fim" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={`end-${slot.id}`} value={slot.end_time}>
-                        {slot.end_time.substring(0, 5)} {slot.label && `(${slot.label})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                />
               </div>
             </div>
+            
+            <p className="text-xs text-muted-foreground">
+              Escolha qualquer horário. Ex: 8:00 às 9:30, 14:00 às 16:45
+            </p>
           </div>
           
           <DialogFooter>

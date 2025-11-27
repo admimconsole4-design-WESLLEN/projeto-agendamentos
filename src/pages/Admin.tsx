@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReservationsList } from "@/components/ReservationsList";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   getEquipments,
@@ -23,6 +23,8 @@ import {
 } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AuthGuard } from "@/components/AuthGuard";
+import { signOut } from "@/lib/auth";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -138,19 +140,36 @@ const Admin = () => {
     }
   };
 
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error("Erro ao fazer logout");
+    } else {
+      toast.success("Logout realizado!");
+      navigate("/auth");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <AuthGuard requireAdmin={true}>
+      <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate("/")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Painel Administrativo</h1>
-              <p className="text-muted-foreground mt-1">Gerencie equipamentos, horários e reservas</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate("/")}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Painel Administrativo</h1>
+                <p className="text-muted-foreground mt-1">Gerencie equipamentos, horários e reservas</p>
+              </div>
             </div>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
           </div>
         </div>
       </header>
@@ -344,6 +363,7 @@ const Admin = () => {
         </Tabs>
       </main>
     </div>
+    </AuthGuard>
   );
 };
 
