@@ -1,0 +1,220 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { EquipmentCard } from "@/components/EquipmentCard";
+import { ReservationModal } from "@/components/ReservationModal";
+import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
+import { CalendarDays, Settings } from "lucide-react";
+import {
+  getEquipments,
+  getTimeSlots,
+  getReservations,
+  createReservation,
+  checkEquipmentAvailability,
+  type Equipment,
+  type TimeSlot,
+  type Reservation,
+} from "@/lib/supabase";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+
+const Home = () => {
+  const navigate = useNavigate();
+  const [date, setDate] = useState<Date>(new Date());
+  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [availableEquipments, setAvailableEquipments] = useState<Set<string>>(new Set());
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (date) {
+      loadReservations();
+    }
+  }, [date]);
+
+  const loadData = async () => {
+    try {
+      const [equipmentsData, timeSlotsData] = await Promise.all([
+        getEquipments(),
+        getTimeSlots(),
+      ]);
+      setEquipments(equipmentsData);
+      setTimeSlots(timeSlotsData);
+    } catch (error: any) {
+      toast.error("Erro ao carregar dados: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadReservations = async () => {
+    try {
+      const dateStr = format(date, "yyyy-MM-dd");
+      const reservationsData = await getReservations(dateStr);
+      setReservations(reservationsData);
+      
+      // Verificar disponibilidade para cada equipamento
+      const available = new Set<string>();
+      for (const equipment of equipments) {
+        // Verifica se tem alguma reserva para este equipamento nesta data
+        const hasReservation = reservationsData.some(
+          (r) => r.equipment_id === equipment.id && r.date === dateStr
+        );
+        if (!hasReservation) {
+          available.add(equipment.id);
+        }
+      }
+      setAvailableEquipments(available);
+    } catch (error: any) {
+      toast.error("Erro ao carregar reservas: " + error.message);
+    }
+  };
+
+  const handleReserve = (equipment: Equipment) => {
+    setSelectedEquipment(equipment);
+    setModalOpen(true);
+  };
+
+  const handleCreateReservation = async (data: {
+    equipmentId: string;
+    name: string;
+    phone: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+  }) => {
+    await createReservation(
+      data.equipmentId,
+      data.name,
+      data.phone,
+      data.date,
+      data.startTime,
+      data.endTime
+    );
+    await loadReservations();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Sistema de Reserva de Equipamentos</h1>
+              <p className="text-muted-foreground mt-1">Gerencie suas reservas de forma simples e eficiente</p>
+            </div>
+            <Button variant="outline" onClick={() => navigate("/admin")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Admin
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CalendarDays className="mr-2 h-5 w-5" />
+                  Selecione a Data
+                </CardTitle>
+                <CardDescription>
+                  Escolha uma data para ver a disponibilidade
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(newDate) => newDate && setDate(newDate)}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  className="rounded-md border"
+                  locale={ptBR}
+                />
+                
+                <div className="mt-6 space-y-2">
+                  <h3 className="font-semibold text-sm">Legenda:</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-available"></div>
+                    <span className="text-sm">Disponível</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-occupied"></div>
+                    <span className="text-sm">Ocupado</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2">
+                Equipamentos para {format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              </h2>
+              <p className="text-muted-foreground">
+                {equipments.length} equipamento(s) disponível(is) no sistema
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {equipments.map((equipment) => (
+                <EquipmentCard
+                  key={equipment.id}
+                  equipment={equipment}
+                  isAvailable={availableEquipments.has(equipment.id)}
+                  onReserve={handleReserve}
+                />
+              ))}
+            </div>
+
+            {equipments.length === 0 && (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-muted-foreground">
+                    Nenhum equipamento cadastrado. Acesse o painel admin para adicionar equipamentos.
+                  </p>
+                  <Button className="mt-4" onClick={() => navigate("/admin")}>
+                    Ir para Admin
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <ReservationModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        equipment={selectedEquipment}
+        timeSlots={timeSlots}
+        onSubmit={handleCreateReservation}
+      />
+    </div>
+  );
+};
+
+export default Home;
