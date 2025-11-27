@@ -6,33 +6,64 @@ import { EquipmentCard } from "@/components/EquipmentCard";
 import { ReservationModal } from "@/components/ReservationModal";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
-import { CalendarDays, Settings } from "lucide-react";
+import { CalendarDays, LogIn, LogOut, Settings } from "lucide-react";
 import {
   getEquipments,
-  getTimeSlots,
   getReservations,
   createReservation,
-  checkEquipmentAvailability,
   type Equipment,
-  type TimeSlot,
   type Reservation,
 } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from "@supabase/supabase-js";
+import { signOut, isAdmin } from "@/lib/auth";
 
 const Home = () => {
   const navigate = useNavigate();
   const [date, setDate] = useState<Date>(new Date());
   const [equipments, setEquipments] = useState<Equipment[]>([]);
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [availableEquipments, setAvailableEquipments] = useState<Set<string>>(new Set());
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
+    // Set up auth state listener FIRST
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      // Check admin status if user exists
+      if (session?.user) {
+        setTimeout(() => {
+          isAdmin(session.user.id).then(setIsAdminUser);
+        }, 0);
+      } else {
+        setIsAdminUser(false);
+      }
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        isAdmin(session.user.id).then(setIsAdminUser);
+      }
+    });
+
     loadData();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -43,12 +74,8 @@ const Home = () => {
 
   const loadData = async () => {
     try {
-      const [equipmentsData, timeSlotsData] = await Promise.all([
-        getEquipments(),
-        getTimeSlots(),
-      ]);
+      const equipmentsData = await getEquipments();
       setEquipments(equipmentsData);
-      setTimeSlots(timeSlotsData);
     } catch (error: any) {
       toast.error("Erro ao carregar dados: " + error.message);
     } finally {
@@ -80,8 +107,23 @@ const Home = () => {
   };
 
   const handleReserve = (equipment: Equipment) => {
+    if (!user) {
+      toast.error("Você precisa estar logado para fazer uma reserva");
+      navigate("/auth");
+      return;
+    }
     setSelectedEquipment(equipment);
     setModalOpen(true);
+  };
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error("Erro ao fazer logout");
+    } else {
+      toast.success("Logout realizado com sucesso!");
+      navigate("/auth");
+    }
   };
 
   const handleCreateReservation = async (data: {
@@ -123,10 +165,27 @@ const Home = () => {
               <h1 className="text-3xl font-bold tracking-tight">Sistema de Reserva de Equipamentos</h1>
               <p className="text-muted-foreground mt-1">Gerencie suas reservas de forma simples e eficiente</p>
             </div>
-            <Button variant="outline" onClick={() => navigate("/admin")}>
-              <Settings className="mr-2 h-4 w-4" />
-              Admin
-            </Button>
+            <div className="flex gap-2">
+              {user ? (
+                <>
+                  {isAdminUser && (
+                    <Button variant="outline" onClick={() => navigate("/admin")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Admin
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sair
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => navigate("/auth")}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Entrar
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -210,7 +269,6 @@ const Home = () => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         equipment={selectedEquipment}
-        timeSlots={timeSlots}
         onSubmit={handleCreateReservation}
       />
     </div>
