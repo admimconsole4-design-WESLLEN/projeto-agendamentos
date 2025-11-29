@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar } from "@/components/ui/calendar";
 import { EquipmentCard } from "@/components/EquipmentCard";
 import { ReservationModal } from "@/components/ReservationModal";
+import { OccupiedTimeSlots } from "@/components/OccupiedTimeSlots";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
 import { CalendarDays, LogIn, LogOut, Settings } from "lucide-react";
@@ -89,17 +90,9 @@ const Home = () => {
       const reservationsData = await getReservations(dateStr);
       setReservations(reservationsData);
       
-      // Verificar disponibilidade para cada equipamento
-      const available = new Set<string>();
-      for (const equipment of equipments) {
-        // Verifica se tem alguma reserva para este equipamento nesta data
-        const hasReservation = reservationsData.some(
-          (r) => r.equipment_id === equipment.id && r.date === dateStr
-        );
-        if (!hasReservation) {
-          available.add(equipment.id);
-        }
-      }
+      // Todos os equipamentos estão sempre disponíveis
+      // A verificação de conflito de horário é feita no backend ao criar reserva
+      const available = new Set<string>(equipments.map(e => e.id));
       setAvailableEquipments(available);
     } catch (error: any) {
       toast.error("Erro ao carregar reservas: " + error.message);
@@ -107,11 +100,6 @@ const Home = () => {
   };
 
   const handleReserve = (equipment: Equipment) => {
-    if (!user) {
-      toast.error("Você precisa estar logado para fazer uma reserva");
-      navigate("/auth");
-      return;
-    }
     setSelectedEquipment(equipment);
     setModalOpen(true);
   };
@@ -220,21 +208,27 @@ const Home = () => {
                     <span className="text-sm">Disponível</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-occupied"></div>
+                  <div className="w-3 h-3 rounded-full bg-occupied"></div>
                     <span className="text-sm">Ocupado</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            <OccupiedTimeSlots
+              reservations={reservations}
+              equipments={equipments}
+              selectedDate={date}
+            />
           </div>
 
           <div className="lg:col-span-2">
             <div className="mb-6">
               <h2 className="text-2xl font-bold mb-2">
-                Equipamentos para {format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                Equipamentos Disponíveis
               </h2>
               <p className="text-muted-foreground">
-                {equipments.length} equipamento(s) disponível(is) no sistema
+                Selecione um equipamento para reservar. Escolha livremente o horário de início e fim.
               </p>
             </div>
 
