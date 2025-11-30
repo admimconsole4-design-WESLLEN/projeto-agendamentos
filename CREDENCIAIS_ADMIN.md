@@ -1,18 +1,37 @@
 # Credenciais do Administrador
 
-## Login Automático Gerado
+## Passo 1: Criar a Conta Admin
 
-Use estas credenciais para acessar o painel administrativo:
+⚠️ **IMPORTANTE**: Você precisa criar a conta primeiro através da interface de cadastro:
 
-- **Email:** `admin@sistema.com`
-- **Senha:** `Admin@2024`
+1. Acesse a página `/auth`
+2. Clique na aba **"Criar Conta"**
+3. Use estas credenciais:
+   - **Email:** `admin@sistema.com`
+   - **Senha:** `Admin@2024`
+4. Clique em **"Criar Conta"**
 
-## Como Acessar
+## Passo 2: Promover a Admin
 
-1. Acesse a página de login em `/auth`
-2. Use o email e senha acima
-3. Você será redirecionado para a página inicial
-4. Clique no botão "Admin" no canto superior direito para acessar o painel administrativo
+Após criar a conta, você precisa promovê-la para administrador:
+
+1. Abra o backend clicando no botão abaixo:
+
+**[Clique aqui para abrir o Backend]**
+
+2. Vá até **Database** → **SQL Editor**
+3. Execute este comando:
+
+```sql
+SELECT public.make_user_admin('admin@sistema.com');
+```
+
+4. Faça logout e login novamente
+
+## Como Acessar o Painel Admin
+
+1. Faça login com `admin@sistema.com` / `Admin@2024`
+2. Clique no botão **"Admin"** no canto superior direito
 
 ## Importante
 
