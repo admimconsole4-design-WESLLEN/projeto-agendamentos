@@ -21,7 +21,7 @@ export type Reservation = {
   id: string;
   equipment_id: string;
   name: string;
-  phone: string;
+  phone: string | null;
   date: string;
   start_time: string;
   end_time: string;
@@ -112,7 +112,6 @@ export const getReservations = async (date?: string) => {
 export const createReservation = async (
   equipmentId: string,
   name: string,
-  phone: string,
   date: string,
   startTime: string,
   endTime: string
@@ -137,7 +136,6 @@ export const createReservation = async (
     .insert({
       equipment_id: equipmentId,
       name,
-      phone,
       date,
       start_time: startTime,
       end_time: endTime,

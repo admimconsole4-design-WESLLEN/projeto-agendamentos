@@ -4,74 +4,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar } from "@/components/ui/calendar";
 import { EquipmentCard } from "@/components/EquipmentCard";
 import { ReservationModal } from "@/components/ReservationModal";
+import { AddEquipmentModal } from "@/components/AddEquipmentModal";
 import { OccupiedTimeSlots } from "@/components/OccupiedTimeSlots";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
-import { CalendarDays, LogIn, LogOut, Settings } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import {
   getEquipments,
   getReservations,
   createReservation,
+  createEquipment,
   type Equipment,
   type Reservation,
 } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User, Session } from "@supabase/supabase-js";
-import { signOut, isAdmin } from "@/lib/auth";
 
 const Home = () => {
-  const navigate = useNavigate();
   const [date, setDate] = useState<Date>(new Date());
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [availableEquipments, setAvailableEquipments] = useState<Set<string>>(new Set());
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+  const [addEquipmentModalOpen, setAddEquipmentModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Check admin status if user exists
-      if (session?.user) {
-        setTimeout(() => {
-          isAdmin(session.user.id).then(setIsAdminUser);
-        }, 0);
-      } else {
-        setIsAdminUser(false);
-      }
-    });
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        isAdmin(session.user.id).then(setIsAdminUser);
-      }
-    });
-
     loadData();
-
-    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     if (date) {
       loadReservations();
     }
-  }, [date]);
+  }, [date, equipments]);
 
   const loadData = async () => {
     try {
@@ -118,23 +84,12 @@ const Home = () => {
 
   const handleReserve = (equipment: Equipment) => {
     setSelectedEquipment(equipment);
-    setModalOpen(true);
-  };
-
-  const handleLogout = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast.error("Erro ao fazer logout");
-    } else {
-      toast.success("Logout realizado com sucesso!");
-      navigate("/auth");
-    }
+    setReservationModalOpen(true);
   };
 
   const handleCreateReservation = async (data: {
     equipmentId: string;
     name: string;
-    phone: string;
     date: string;
     startTime: string;
     endTime: string;
@@ -142,12 +97,16 @@ const Home = () => {
     await createReservation(
       data.equipmentId,
       data.name,
-      data.phone,
       data.date,
       data.startTime,
       data.endTime
     );
     await loadReservations();
+  };
+
+  const handleAddEquipment = async (name: string, description?: string) => {
+    await createEquipment(name, description);
+    await loadData();
   };
 
   if (loading) {
@@ -170,27 +129,10 @@ const Home = () => {
               <h1 className="text-3xl font-bold tracking-tight">Sistema de Reserva de Equipamentos</h1>
               <p className="text-muted-foreground mt-1">Gerencie suas reservas de forma simples e eficiente</p>
             </div>
-            <div className="flex gap-2">
-              {user ? (
-                <>
-                  {isAdminUser && (
-                    <Button variant="outline" onClick={() => navigate("/admin")}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Admin
-                    </Button>
-                  )}
-                  <Button variant="outline" onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sair
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => navigate("/auth")}>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Entrar
-                </Button>
-              )}
-            </div>
+            <Button onClick={() => setAddEquipmentModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Equipamento
+            </Button>
           </div>
         </div>
       </header>
@@ -264,11 +206,8 @@ const Home = () => {
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground">
-                    Nenhum equipamento cadastrado. Acesse o painel admin para adicionar equipamentos.
+                    Nenhum equipamento cadastrado. Clique no botão "Adicionar Equipamento" para começar.
                   </p>
-                  <Button className="mt-4" onClick={() => navigate("/admin")}>
-                    Ir para Admin
-                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -277,10 +216,16 @@ const Home = () => {
       </main>
 
       <ReservationModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={reservationModalOpen}
+        onClose={() => setReservationModalOpen(false)}
         equipment={selectedEquipment}
         onSubmit={handleCreateReservation}
+      />
+
+      <AddEquipmentModal
+        open={addEquipmentModalOpen}
+        onClose={() => setAddEquipmentModalOpen(false)}
+        onSubmit={handleAddEquipment}
       />
     </div>
   );
