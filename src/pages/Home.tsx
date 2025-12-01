@@ -167,10 +167,24 @@ const Home = () => {
                     <span className="text-sm">Disponível</span>
                   </div>
                   <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-occupied"></div>
+                    <div className="w-3 h-3 rounded-full bg-occupied"></div>
                     <span className="text-sm">Ocupado</span>
                   </div>
                 </div>
+                
+                {equipments.length > 0 && (
+                  <Button
+                    onClick={() => {
+                      setSelectedEquipment(equipments[0]);
+                      setReservationModalOpen(true);
+                    }}
+                    className="w-full mt-4"
+                    variant="outline"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Reservar Equipamento
+                  </Button>
+                )}
               </CardContent>
             </Card>
 

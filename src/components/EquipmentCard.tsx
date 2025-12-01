@@ -32,12 +32,10 @@ export const EquipmentCard = ({ equipment, isAvailable, onReserve }: EquipmentCa
       <CardContent>
         <Button
           onClick={() => onReserve(equipment)}
-          disabled={!isAvailable}
           className="w-full"
-          variant={isAvailable ? "default" : "outline"}
         >
           <Calendar className="mr-2 h-4 w-4" />
-          {isAvailable ? "Reservar" : "Indisponível"}
+          Reservar
         </Button>
       </CardContent>
     </Card>
