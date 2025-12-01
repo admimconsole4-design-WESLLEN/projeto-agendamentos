@@ -1,5 +1,13 @@
 # Credenciais do Administrador
 
+## ⚠️ Se houver erro ao fazer login
+
+Se você receber um erro "Database error querying schema" ao tentar fazer login, siga estes passos:
+
+1. **Certifique-se de criar a conta via interface de cadastro primeiro** (veja Passo 1 abaixo)
+2. Se o erro persistir, pode haver um usuário malformado no banco. A migração mais recente já limpou dados problemáticos.
+3. Tente criar a conta novamente pelo signup.
+
 ## Passo 1: Criar a Conta Admin
 
 ⚠️ **IMPORTANTE**: Você precisa criar a conta primeiro através da interface de cadastro:
