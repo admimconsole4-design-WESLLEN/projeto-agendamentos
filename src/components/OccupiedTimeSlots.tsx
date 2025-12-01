@@ -10,7 +10,22 @@ interface OccupiedTimeSlotsProps {
 }
 
 export const OccupiedTimeSlots = ({ reservations, equipments, selectedDate }: OccupiedTimeSlotsProps) => {
-  if (reservations.length === 0) {
+  // Filtrar apenas reservas ativas (que ainda não passaram)
+  const now = new Date();
+  const today = format(now, "yyyy-MM-dd");
+  const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
+  const currentTime = format(now, "HH:mm:ss");
+  
+  const activeReservations = reservations.filter(reservation => {
+    // Se a data selecionada é hoje, verificar se o horário já passou
+    if (selectedDateStr === today) {
+      return reservation.end_time > currentTime;
+    }
+    // Se é data futura, todas as reservas são ativas
+    return true;
+  });
+
+  if (activeReservations.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -44,7 +59,7 @@ export const OccupiedTimeSlots = ({ reservations, equipments, selectedDate }: Oc
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {reservations.map((reservation) => {
+          {activeReservations.map((reservation) => {
             const equipment = equipments.find(e => e.id === reservation.equipment_id);
             return (
               <div

@@ -88,11 +88,28 @@ const Home = () => {
     try {
       const dateStr = format(date, "yyyy-MM-dd");
       const reservationsData = await getReservations(dateStr);
-      setReservations(reservationsData);
       
-      // Todos os equipamentos estão sempre disponíveis
-      // A verificação de conflito de horário é feita no backend ao criar reserva
-      const available = new Set<string>(equipments.map(e => e.id));
+      // Filtrar apenas reservas ativas (que ainda não passaram)
+      const now = new Date();
+      const today = format(now, "yyyy-MM-dd");
+      const currentTime = format(now, "HH:mm:ss");
+      
+      const activeReservations = reservationsData.filter(reservation => {
+        // Se a data selecionada é hoje, verificar se o horário já passou
+        if (dateStr === today) {
+          return reservation.end_time > currentTime;
+        }
+        // Se é data futura, todas as reservas são ativas
+        return true;
+      });
+      
+      setReservations(activeReservations);
+      
+      // Marcar equipamentos como ocupados apenas se tiverem reservas ativas
+      const occupiedIds = new Set(activeReservations.map(r => r.equipment_id));
+      const available = new Set<string>(
+        equipments.filter(e => !occupiedIds.has(e.id)).map(e => e.id)
+      );
       setAvailableEquipments(available);
     } catch (error: any) {
       toast.error("Erro ao carregar reservas: " + error.message);
