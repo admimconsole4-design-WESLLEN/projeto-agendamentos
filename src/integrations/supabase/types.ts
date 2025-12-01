@@ -46,7 +46,7 @@ export type Database = {
           equipment_id: string
           id: string
           name: string
-          phone: string
+          phone: string | null
           start_time: string
           updated_at: string
         }
@@ -57,7 +57,7 @@ export type Database = {
           equipment_id: string
           id?: string
           name: string
-          phone: string
+          phone?: string | null
           start_time: string
           updated_at?: string
         }
@@ -68,7 +68,7 @@ export type Database = {
           equipment_id?: string
           id?: string
           name?: string
-          phone?: string
+          phone?: string | null
           start_time?: string
           updated_at?: string
         }

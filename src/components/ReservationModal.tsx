@@ -19,7 +19,6 @@ interface ReservationModalProps {
   onSubmit: (data: {
     equipmentId: string;
     name: string;
-    phone: string;
     date: string;
     startTime: string;
     endTime: string;
@@ -33,7 +32,6 @@ export const ReservationModal = ({
   onSubmit,
 }: ReservationModalProps) => {
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [date, setDate] = useState<Date>();
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -52,11 +50,6 @@ export const ReservationModal = ({
       return;
     }
 
-    if (!phone.trim() || !/^\d{10,15}$/.test(phone.replace(/\D/g, ""))) {
-      toast.error("Telefone inválido (10-15 dígitos)");
-      return;
-    }
-
     if (startTime >= endTime) {
       toast.error("Horário de início deve ser antes do fim");
       return;
@@ -67,7 +60,6 @@ export const ReservationModal = ({
       await onSubmit({
         equipmentId: equipment.id,
         name: name.trim(),
-        phone: phone.replace(/\D/g, ""),
         date: format(date, "yyyy-MM-dd"),
         startTime,
         endTime,
@@ -75,7 +67,6 @@ export const ReservationModal = ({
       
       // Reset form
       setName("");
-      setPhone("");
       setDate(undefined);
       setStartTime("");
       setEndTime("");
@@ -95,7 +86,7 @@ export const ReservationModal = ({
           <DialogHeader>
             <DialogTitle>Reservar Equipamento</DialogTitle>
             <DialogDescription>
-              {equipment?.name} - Preencha os dados para confirmar a reserva
+              {equipment?.name} - Informe seu nome e horários desejados
             </DialogDescription>
           </DialogHeader>
           
@@ -106,18 +97,7 @@ export const ReservationModal = ({
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Seu nome completo"
-                required
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Telefone *</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="(11) 98888-7777"
+                placeholder="Seu nome"
                 required
               />
             </div>
