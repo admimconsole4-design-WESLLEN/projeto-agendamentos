@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { EquipmentCard } from "@/components/EquipmentCard";
 import { ReservationModal } from "@/components/ReservationModal";
 import { AddEquipmentModal } from "@/components/AddEquipmentModal";
+import { CalendarReservationModal } from "@/components/CalendarReservationModal";
 import { OccupiedTimeSlots } from "@/components/OccupiedTimeSlots";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
@@ -27,7 +28,10 @@ const Home = () => {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [addEquipmentModalOpen, setAddEquipmentModalOpen] = useState(false);
+  const [calendarReservationModalOpen, setCalendarReservationModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const lastClickTime = useRef<number>(0);
+  const lastClickedDate = useRef<Date | null>(null);
 
   useEffect(() => {
     loadData();
@@ -106,6 +110,23 @@ const Home = () => {
     await loadData();
   };
 
+  const handleDateSelect = (newDate: Date | undefined) => {
+    if (!newDate) return;
+    
+    const now = Date.now();
+    const isSameDate = lastClickedDate.current && 
+      format(lastClickedDate.current, "yyyy-MM-dd") === format(newDate, "yyyy-MM-dd");
+    
+    // Detectar duplo clique (menos de 300ms entre cliques na mesma data)
+    if (isSameDate && now - lastClickTime.current < 300) {
+      setCalendarReservationModalOpen(true);
+    }
+    
+    lastClickTime.current = now;
+    lastClickedDate.current = newDate;
+    setDate(newDate);
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -151,13 +172,17 @@ const Home = () => {
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={(newDate) => newDate && setDate(newDate)}
+                  onSelect={handleDateSelect}
                   disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                   className="rounded-md border"
                   locale={ptBR}
                 />
                 
-                <div className="mt-6 space-y-2">
+                <p className="text-xs text-muted-foreground mt-2">
+                  Duplo clique na data para agendar
+                </p>
+                
+                <div className="mt-4 space-y-2">
                   <h3 className="font-semibold text-sm">Legenda:</h3>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-available"></div>
@@ -227,6 +252,14 @@ const Home = () => {
         open={addEquipmentModalOpen}
         onClose={() => setAddEquipmentModalOpen(false)}
         onSubmit={handleAddEquipment}
+      />
+
+      <CalendarReservationModal
+        open={calendarReservationModalOpen}
+        onClose={() => setCalendarReservationModalOpen(false)}
+        selectedDate={date}
+        equipments={equipments}
+        onSubmit={handleCreateReservation}
       />
     </div>
   );
