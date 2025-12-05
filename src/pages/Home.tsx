@@ -23,7 +23,7 @@ const Home = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [availableEquipments, setAvailableEquipments] = useState<Set<string>>(new Set());
+  const [equipmentsWithReservations, setEquipmentsWithReservations] = useState<Set<string>>(new Set());
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [addEquipmentModalOpen, setAddEquipmentModalOpen] = useState(false);
@@ -71,12 +71,9 @@ const Home = () => {
       
       setReservations(activeReservations);
       
-      // Marcar equipamentos como ocupados apenas se tiverem reservas ativas
+      // Marcar equipamentos que têm alguma reserva (parcialmente ocupados)
       const occupiedIds = new Set(activeReservations.map(r => r.equipment_id));
-      const available = new Set<string>(
-        equipments.filter(e => !occupiedIds.has(e.id)).map(e => e.id)
-      );
-      setAvailableEquipments(available);
+      setEquipmentsWithReservations(occupiedIds);
     } catch (error: any) {
       toast.error("Erro ao carregar reservas: " + error.message);
     }
@@ -164,30 +161,34 @@ const Home = () => {
                   <h3 className="font-semibold text-sm">Legenda:</h3>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-available"></div>
-                    <span className="text-sm">Disponível</span>
+                    <span className="text-sm">Livre</span>
                   </div>
                   <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-occupied"></div>
-                    <span className="text-sm">Ocupado</span>
+                    <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                    <span className="text-sm">Parcialmente Ocupado</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <OccupiedTimeSlots
-              reservations={reservations}
-              equipments={equipments}
-              selectedDate={date}
-            />
+            {reservations.length > 0 && (
+              <div className="mt-6">
+                <OccupiedTimeSlots
+                  reservations={reservations}
+                  equipments={equipments}
+                  selectedDate={date}
+                />
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-2">
             <div className="mb-6">
               <h2 className="text-2xl font-bold mb-2">
-                Equipamentos Disponíveis
+                Equipamentos
               </h2>
               <p className="text-muted-foreground">
-                Selecione um equipamento para reservar. Escolha livremente o horário de início e fim.
+                Selecione um equipamento para reservar. Verifique os horários ocupados ao lado.
               </p>
             </div>
 
@@ -196,7 +197,7 @@ const Home = () => {
                 <EquipmentCard
                   key={equipment.id}
                   equipment={equipment}
-                  isAvailable={availableEquipments.has(equipment.id)}
+                  hasReservations={equipmentsWithReservations.has(equipment.id)}
                   onReserve={handleReserve}
                 />
               ))}

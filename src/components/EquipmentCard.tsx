@@ -1,16 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar } from "lucide-react";
 import type { Equipment } from "@/lib/supabase";
 
 interface EquipmentCardProps {
   equipment: Equipment;
-  isAvailable: boolean;
+  hasReservations: boolean;
   onReserve: (equipment: Equipment) => void;
 }
 
-export const EquipmentCard = ({ equipment, isAvailable, onReserve }: EquipmentCardProps) => {
+export const EquipmentCard = ({ equipment, hasReservations, onReserve }: EquipmentCardProps) => {
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
@@ -22,22 +22,20 @@ export const EquipmentCard = ({ equipment, isAvailable, onReserve }: EquipmentCa
             )}
           </div>
           <Badge
-            variant={isAvailable ? "default" : "destructive"}
-            className={isAvailable ? "bg-available" : "bg-occupied"}
+            variant={hasReservations ? "secondary" : "default"}
+            className={hasReservations ? "bg-amber-500 text-white" : "bg-available"}
           >
-            {isAvailable ? "Disponível" : "Ocupado"}
+            {hasReservations ? "Parcialmente Ocupado" : "Livre"}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
         <Button
           onClick={() => onReserve(equipment)}
-          disabled={!isAvailable}
           className="w-full"
-          variant={isAvailable ? "default" : "outline"}
         >
           <Calendar className="mr-2 h-4 w-4" />
-          {isAvailable ? "Reservar" : "Indisponível"}
+          Reservar
         </Button>
       </CardContent>
     </Card>
