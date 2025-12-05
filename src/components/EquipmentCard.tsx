@@ -12,18 +12,18 @@ interface EquipmentCardProps {
 
 export const EquipmentCard = ({ equipment, hasReservations, onReserve }: EquipmentCardProps) => {
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow border-2 border-primary/20 hover:border-secondary">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-xl">{equipment.name}</CardTitle>
+            <CardTitle className="text-xl text-primary">{equipment.name}</CardTitle>
             {equipment.description && (
               <CardDescription className="mt-2">{equipment.description}</CardDescription>
             )}
           </div>
           <Badge
             variant={hasReservations ? "secondary" : "default"}
-            className={hasReservations ? "bg-amber-500 text-white" : "bg-available"}
+            className={hasReservations ? "bg-secondary text-secondary-foreground" : "bg-available text-available-foreground"}
           >
             {hasReservations ? "Parcialmente Ocupado" : "Livre"}
           </Badge>
@@ -32,7 +32,7 @@ export const EquipmentCard = ({ equipment, hasReservations, onReserve }: Equipme
       <CardContent>
         <Button
           onClick={() => onReserve(equipment)}
-          className="w-full"
+          className="w-full bg-primary hover:bg-primary/90"
         >
           <Calendar className="mr-2 h-4 w-4" />
           Reservar
