@@ -10,47 +10,11 @@ interface OccupiedTimeSlotsProps {
 }
 
 export const OccupiedTimeSlots = ({ reservations, equipments, selectedDate }: OccupiedTimeSlotsProps) => {
-  // Filtrar apenas reservas ativas (que ainda não passaram)
-  const now = new Date();
-  const today = format(now, "yyyy-MM-dd");
-  const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
-  const currentTime = format(now, "HH:mm:ss");
-  
-  const activeReservations = reservations.filter(reservation => {
-    // Se a data selecionada é hoje, verificar se o horário já passou
-    if (selectedDateStr === today) {
-      return reservation.end_time > currentTime;
-    }
-    // Se é data futura, todas as reservas são ativas
-    return true;
-  });
-
-  if (activeReservations.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Clock className="mr-2 h-5 w-5" />
-            Horários Ocupados
-          </CardTitle>
-          <CardDescription>
-            {format(selectedDate, "dd/MM/yyyy")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Nenhum horário ocupado nesta data
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Clock className="mr-2 h-5 w-5" />
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center text-base">
+          <Clock className="mr-2 h-4 w-4" />
           Horários Ocupados
         </CardTitle>
         <CardDescription>
@@ -58,20 +22,20 @@ export const OccupiedTimeSlots = ({ reservations, equipments, selectedDate }: Oc
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {activeReservations.map((reservation) => {
+        <div className="space-y-2">
+          {reservations.map((reservation) => {
             const equipment = equipments.find(e => e.id === reservation.equipment_id);
             return (
               <div
                 key={reservation.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-destructive/20 bg-destructive/10"
+                className="flex items-center justify-between p-2 rounded-lg border border-amber-500/30 bg-amber-500/10"
               >
                 <div className="flex-1">
                   <p className="font-medium text-sm">{equipment?.name}</p>
                   <p className="text-xs text-muted-foreground">{reservation.name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-destructive">
+                  <p className="text-sm font-semibold text-amber-600">
                     {reservation.start_time.substring(0, 5)} - {reservation.end_time.substring(0, 5)}
                   </p>
                 </div>
