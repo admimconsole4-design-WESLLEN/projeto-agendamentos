@@ -10,6 +10,7 @@ import { OccupiedTimeSlots } from "@/components/OccupiedTimeSlots";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
 import { CalendarDays, Plus } from "lucide-react";
+import logoEscola from "@/assets/logo-escola.jpg";
 import {
   getEquipments,
   getReservations,
@@ -129,7 +130,7 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Carregando...</p>
@@ -140,14 +141,28 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
+      <header className="school-header border-b-4 border-secondary">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Sistema de Reserva de Equipamentos</h1>
-              <p className="text-muted-foreground mt-1">Gerencie suas reservas de forma simples e eficiente</p>
+            <div className="flex items-center gap-4">
+              <img 
+                src={logoEscola} 
+                alt="Brasão da Escola Municipal Antônio José da Rocha" 
+                className="h-16 w-auto rounded-lg shadow-lg"
+              />
+              <div className="text-primary-foreground">
+                <h1 className="text-2xl font-bold tracking-tight">
+                  Escola Municipal Antônio José da Rocha
+                </h1>
+                <p className="text-secondary text-sm font-medium">
+                  Sistema de Reserva de Equipamentos
+                </p>
+              </div>
             </div>
-            <Button onClick={() => setAddEquipmentModalOpen(true)}>
+            <Button 
+              onClick={() => setAddEquipmentModalOpen(true)}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Adicionar Equipamento
             </Button>
@@ -158,9 +173,9 @@ const Home = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="bg-primary/5">
+                <CardTitle className="flex items-center text-primary">
                   <CalendarDays className="mr-2 h-5 w-5" />
                   Selecione a Data
                 </CardTitle>
@@ -168,13 +183,13 @@ const Home = () => {
                   Escolha uma data para ver a disponibilidade
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 <Calendar
                   mode="single"
                   selected={date}
                   onSelect={handleDateSelect}
                   disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  className="rounded-md border"
+                  className="rounded-md border border-primary/20"
                   locale={ptBR}
                 />
                 
@@ -183,13 +198,13 @@ const Home = () => {
                 </p>
                 
                 <div className="mt-4 space-y-2">
-                  <h3 className="font-semibold text-sm">Legenda:</h3>
+                  <h3 className="font-semibold text-sm text-primary">Legenda:</h3>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-available"></div>
                     <span className="text-sm">Livre</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-secondary"></div>
                     <span className="text-sm">Parcialmente Ocupado</span>
                   </div>
                 </div>
@@ -209,7 +224,7 @@ const Home = () => {
 
           <div className="lg:col-span-2">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2">
+              <h2 className="text-2xl font-bold mb-2 text-primary">
                 Equipamentos
               </h2>
               <p className="text-muted-foreground">
@@ -229,7 +244,7 @@ const Home = () => {
             </div>
 
             {equipments.length === 0 && (
-              <Card>
+              <Card className="border-2 border-dashed border-primary/30">
                 <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground">
                     Nenhum equipamento cadastrado. Clique no botão "Adicionar Equipamento" para começar.
@@ -240,6 +255,17 @@ const Home = () => {
           </div>
         </div>
       </main>
+
+      <footer className="school-header border-t-4 border-secondary mt-auto py-4">
+        <div className="container mx-auto px-4 text-center text-primary-foreground">
+          <p className="text-sm">
+            Escola Municipal Antônio José da Rocha - Major Sales/RN
+          </p>
+          <p className="text-xs text-secondary mt-1">
+            Ensino Fundamental
+          </p>
+        </div>
+      </footer>
 
       <ReservationModal
         open={reservationModalOpen}
