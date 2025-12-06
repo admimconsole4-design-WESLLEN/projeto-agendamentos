@@ -9,7 +9,8 @@ import { CalendarReservationModal } from "@/components/CalendarReservationModal"
 import { OccupiedTimeSlots } from "@/components/OccupiedTimeSlots";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
-import { CalendarDays, Plus } from "lucide-react";
+import { CalendarDays, Plus, Settings } from "lucide-react";
+import { DeleteEquipmentModal } from "@/components/DeleteEquipmentModal";
 import logoEscola from "@/assets/logo-escola.jpg";
 import {
   getEquipments,
@@ -30,6 +31,7 @@ const Home = () => {
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [addEquipmentModalOpen, setAddEquipmentModalOpen] = useState(false);
   const [calendarReservationModalOpen, setCalendarReservationModalOpen] = useState(false);
+  const [deleteEquipmentModalOpen, setDeleteEquipmentModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const lastClickTime = useRef<number>(0);
   const lastClickedDate = useRef<Date | null>(null);
@@ -267,6 +269,15 @@ const Home = () => {
           <p className="text-xs text-secondary mt-1">
             Ensino Fundamental
           </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDeleteEquipmentModalOpen(true)}
+            className="mt-2 text-xs text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
+          >
+            <Settings className="h-3 w-3 mr-1" />
+            Gerenciar Equipamentos
+          </Button>
         </div>
       </footer>
 
@@ -289,6 +300,13 @@ const Home = () => {
         selectedDate={date}
         equipments={equipments}
         onSubmit={handleCreateReservation}
+      />
+
+      <DeleteEquipmentModal
+        isOpen={deleteEquipmentModalOpen}
+        onClose={() => setDeleteEquipmentModalOpen(false)}
+        equipments={equipments}
+        onEquipmentDeleted={loadData}
       />
     </div>
   );
