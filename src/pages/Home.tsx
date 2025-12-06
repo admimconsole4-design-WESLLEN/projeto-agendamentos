@@ -142,26 +142,27 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="school-header border-b-4 border-secondary">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <img 
                 src={logoEscola} 
                 alt="Brasão da Escola Municipal Antônio José da Rocha" 
-                className="h-16 w-auto rounded-lg shadow-lg"
+                className="h-12 sm:h-16 w-auto rounded-lg shadow-lg"
               />
-              <div className="text-primary-foreground">
-                <h1 className="text-2xl font-bold tracking-tight">
+              <div className="text-primary-foreground text-center sm:text-left">
+                <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
                   Escola Municipal Antônio José da Rocha
                 </h1>
-                <p className="text-secondary text-sm font-medium">
+                <p className="text-secondary text-xs sm:text-sm font-medium">
                   Sistema de Reserva de Equipamentos
                 </p>
               </div>
             </div>
             <Button 
               onClick={() => setAddEquipmentModalOpen(true)}
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full sm:w-auto"
+              size="sm"
             >
               <Plus className="mr-2 h-4 w-4" />
               Adicionar Equipamento
@@ -170,30 +171,32 @@ const Home = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+          <div className="lg:col-span-1 order-1 lg:order-1">
             <Card className="border-2 border-primary/20">
-              <CardHeader className="bg-primary/5">
-                <CardTitle className="flex items-center text-primary">
-                  <CalendarDays className="mr-2 h-5 w-5" />
+              <CardHeader className="bg-primary/5 p-4 sm:p-6">
+                <CardTitle className="flex items-center text-primary text-base sm:text-lg">
+                  <CalendarDays className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                   Selecione a Data
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Escolha uma data para ver a disponibilidade
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={handleDateSelect}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  className="rounded-md border border-primary/20"
-                  locale={ptBR}
-                />
+              <CardContent className="pt-4 p-3 sm:p-6">
+                <div className="flex justify-center">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={handleDateSelect}
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    className="rounded-md border border-primary/20"
+                    locale={ptBR}
+                  />
+                </div>
                 
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground mt-2 text-center sm:text-left">
                   Duplo clique na data para agendar
                 </p>
                 
@@ -212,7 +215,7 @@ const Home = () => {
             </Card>
 
             {reservations.length > 0 && (
-              <div className="mt-6">
+              <div className="mt-4 sm:mt-6">
                 <OccupiedTimeSlots
                   reservations={reservations}
                   equipments={equipments}
@@ -222,17 +225,17 @@ const Home = () => {
             )}
           </div>
 
-          <div className="lg:col-span-2">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-primary">
+          <div className="lg:col-span-2 order-2 lg:order-2">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold mb-2 text-primary">
                 Equipamentos
               </h2>
-              <p className="text-muted-foreground">
-                Selecione um equipamento para reservar. Verifique os horários ocupados ao lado.
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Selecione um equipamento para reservar.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {equipments.map((equipment) => (
                 <EquipmentCard
                   key={equipment.id}
@@ -245,8 +248,8 @@ const Home = () => {
 
             {equipments.length === 0 && (
               <Card className="border-2 border-dashed border-primary/30">
-                <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground">
+                <CardContent className="py-8 sm:py-12 text-center">
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     Nenhum equipamento cadastrado. Clique no botão "Adicionar Equipamento" para começar.
                   </p>
                 </CardContent>
@@ -256,9 +259,9 @@ const Home = () => {
         </div>
       </main>
 
-      <footer className="school-header border-t-4 border-secondary mt-auto py-4">
+      <footer className="school-header border-t-4 border-secondary mt-auto py-3 sm:py-4">
         <div className="container mx-auto px-4 text-center text-primary-foreground">
-          <p className="text-sm">
+          <p className="text-xs sm:text-sm">
             Escola Municipal Antônio José da Rocha - Major Sales/RN
           </p>
           <p className="text-xs text-secondary mt-1">
