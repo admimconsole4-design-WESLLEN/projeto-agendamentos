@@ -26,6 +26,7 @@ const Home = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [allReservations, setAllReservations] = useState<Reservation[]>([]);
   const [equipmentsWithReservations, setEquipmentsWithReservations] = useState<Set<string>>(new Set());
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
@@ -59,15 +60,18 @@ const Home = () => {
 
   const loadReservations = async () => {
     try {
-      const dateStr = format(date, "yyyy-MM-dd");
-      const reservationsData = await getReservations(dateStr);
+      // Load all reservations (not filtered by date) for the management modal
+      const allReservationsData = await getReservations();
       
-      // Filtrar apenas reservas ativas (que ainda não passaram)
+      // Filter for the selected date for display
+      const dateStr = format(date, "yyyy-MM-dd");
       const now = new Date();
       const today = format(now, "yyyy-MM-dd");
       const currentTime = format(now, "HH:mm:ss");
       
-      const activeReservations = reservationsData.filter(reservation => {
+      const dateFilteredReservations = allReservationsData.filter(r => r.date === dateStr);
+      
+      const activeReservations = dateFilteredReservations.filter(reservation => {
         // Se a data selecionada é hoje, verificar se o horário já passou
         if (dateStr === today) {
           return reservation.end_time > currentTime;
@@ -77,6 +81,7 @@ const Home = () => {
       });
       
       setReservations(activeReservations);
+      setAllReservations(allReservationsData);
       
       // Marcar equipamentos que têm alguma reserva (parcialmente ocupados)
       const occupiedIds = new Set(activeReservations.map(r => r.equipment_id));
@@ -163,7 +168,7 @@ const Home = () => {
               size="sm"
             >
               <Settings className="mr-2 h-4 w-4" />
-              Gerenciar Equipamentos
+              Gerenciar
             </Button>
           </div>
         </div>
@@ -288,6 +293,7 @@ const Home = () => {
         isOpen={deleteEquipmentModalOpen}
         onClose={() => setDeleteEquipmentModalOpen(false)}
         equipments={equipments}
+        reservations={allReservations}
         onEquipmentChanged={loadData}
       />
     </div>
