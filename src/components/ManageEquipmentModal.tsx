@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -24,37 +24,64 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, ArrowLeft, Plus, Minus, Loader2 } from "lucide-react";
-import { Equipment, deleteEquipment, createEquipment } from "@/lib/supabase";
+import { Trash2, ArrowLeft, Plus, Minus, Loader2, CalendarX } from "lucide-react";
+import { Equipment, Reservation, deleteEquipment, createEquipment, deleteReservation } from "@/lib/supabase";
 import { toast } from "sonner";
+import { format, parse, isAfter } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface ManageEquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   equipments: Equipment[];
+  reservations: Reservation[];
   onEquipmentChanged: () => void;
 }
 
 const CORRECT_PIN = "0705";
 
-type ViewState = "pin" | "menu" | "add" | "delete";
+type ViewState = "pin" | "menu" | "add" | "delete" | "cancelReservation";
 
 export function ManageEquipmentModal({
   isOpen,
   onClose,
   equipments,
+  reservations,
   onEquipmentChanged,
 }: ManageEquipmentModalProps) {
   const [pin, setPin] = useState("");
   const [viewState, setViewState] = useState<ViewState>("pin");
   const [pinError, setPinError] = useState(false);
   const [equipmentToDelete, setEquipmentToDelete] = useState<Equipment | null>(null);
+  const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
   
   // Add equipment form state
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+
+  // Filter future reservations only
+  const futureReservations = useMemo(() => {
+    const now = new Date();
+    return reservations.filter((reservation) => {
+      const reservationDateTime = parse(
+        `${reservation.date} ${reservation.start_time}`,
+        "yyyy-MM-dd HH:mm:ss",
+        new Date()
+      );
+      return isAfter(reservationDateTime, now);
+    }).sort((a, b) => {
+      const dateA = parse(`${a.date} ${a.start_time}`, "yyyy-MM-dd HH:mm:ss", new Date());
+      const dateB = parse(`${b.date} ${b.start_time}`, "yyyy-MM-dd HH:mm:ss", new Date());
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [reservations]);
+
+  const getEquipmentName = (equipmentId: string) => {
+    return equipments.find(e => e.id === equipmentId)?.name || "Equipamento";
+  };
 
   const handlePinComplete = (value: string) => {
     setPin(value);
@@ -74,6 +101,7 @@ export function ManageEquipmentModal({
     setViewState("pin");
     setPinError(false);
     setEquipmentToDelete(null);
+    setReservationToCancel(null);
     setNewName("");
     setNewDescription("");
     onClose();
@@ -106,6 +134,22 @@ export function ManageEquipmentModal({
     }
   };
 
+  const handleCancelReservation = async () => {
+    if (!reservationToCancel) return;
+
+    setIsCanceling(true);
+    try {
+      await deleteReservation(reservationToCancel.id);
+      toast.success("Agendamento cancelado com sucesso");
+      onEquipmentChanged();
+      setReservationToCancel(null);
+    } catch (error) {
+      toast.error("Erro ao cancelar agendamento");
+    } finally {
+      setIsCanceling(false);
+    }
+  };
+
   const handleAddEquipment = async () => {
     if (!newName.trim()) {
       toast.error("Nome do equipamento é obrigatório");
@@ -132,11 +176,13 @@ export function ManageEquipmentModal({
       case "pin":
         return "Digite o código de acesso";
       case "menu":
-        return "Gerenciar Equipamentos";
+        return "Gerenciar";
       case "add":
         return "Adicionar Equipamento";
       case "delete":
         return "Remover Equipamento";
+      case "cancelReservation":
+        return "Cancelar Agendamento";
     }
   };
 
@@ -207,6 +253,17 @@ export function ManageEquipmentModal({
                 <div className="text-left">
                   <p className="font-medium">Remover Equipamento</p>
                   <p className="text-xs text-muted-foreground">Excluir equipamento existente</p>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 h-14"
+                onClick={() => setViewState("cancelReservation")}
+              >
+                <CalendarX className="h-5 w-5 text-orange-500" />
+                <div className="text-left">
+                  <p className="font-medium">Cancelar Agendamento</p>
+                  <p className="text-xs text-muted-foreground">Cancelar reservas futuras</p>
                 </div>
               </Button>
             </div>
@@ -286,6 +343,42 @@ export function ManageEquipmentModal({
               )}
             </div>
           )}
+
+          {viewState === "cancelReservation" && (
+            <div className="py-4">
+              {futureReservations.length === 0 ? (
+                <p className="text-center text-muted-foreground">
+                  Nenhum agendamento futuro encontrado
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {futureReservations.map((reservation) => (
+                    <div
+                      key={reservation.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{reservation.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {getEquipmentName(reservation.equipment_id)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(parse(reservation.date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy", { locale: ptBR })} • {reservation.start_time.slice(0, 5)} - {reservation.end_time.slice(0, 5)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => setReservationToCancel(reservation)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -310,6 +403,31 @@ export function ManageEquipmentModal({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!reservationToCancel}
+        onOpenChange={() => setReservationToCancel(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar cancelamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar o agendamento de "{reservationToCancel?.name}"?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCanceling}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelReservation}
+              disabled={isCanceling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCanceling ? "Cancelando..." : "Cancelar Agendamento"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
