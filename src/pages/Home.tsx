@@ -4,13 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar } from "@/components/ui/calendar";
 import { EquipmentCard } from "@/components/EquipmentCard";
 import { ReservationModal } from "@/components/ReservationModal";
-import { AddEquipmentModal } from "@/components/AddEquipmentModal";
+
 import { CalendarReservationModal } from "@/components/CalendarReservationModal";
 import { OccupiedTimeSlots } from "@/components/OccupiedTimeSlots";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
-import { CalendarDays, Plus, Settings } from "lucide-react";
-import { DeleteEquipmentModal } from "@/components/DeleteEquipmentModal";
+import { CalendarDays, Settings } from "lucide-react";
+import { ManageEquipmentModal } from "@/components/ManageEquipmentModal";
 import logoEscola from "@/assets/logo-escola.jpg";
 import {
   getEquipments,
@@ -29,7 +29,7 @@ const Home = () => {
   const [equipmentsWithReservations, setEquipmentsWithReservations] = useState<Set<string>>(new Set());
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
-  const [addEquipmentModalOpen, setAddEquipmentModalOpen] = useState(false);
+  
   const [calendarReservationModalOpen, setCalendarReservationModalOpen] = useState(false);
   const [deleteEquipmentModalOpen, setDeleteEquipmentModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -108,10 +108,6 @@ const Home = () => {
     await loadReservations();
   };
 
-  const handleAddEquipment = async (name: string, description?: string) => {
-    await createEquipment(name, description);
-    await loadData();
-  };
 
   const handleDateSelect = (newDate: Date | undefined) => {
     if (!newDate) return;
@@ -162,12 +158,12 @@ const Home = () => {
               </div>
             </div>
             <Button 
-              onClick={() => setAddEquipmentModalOpen(true)}
+              onClick={() => setDeleteEquipmentModalOpen(true)}
               className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full sm:w-auto"
               size="sm"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar Equipamento
+              <Settings className="mr-2 h-4 w-4" />
+              Gerenciar Equipamentos
             </Button>
           </div>
         </div>
@@ -269,15 +265,6 @@ const Home = () => {
           <p className="text-xs text-secondary mt-1">
             Ensino Fundamental
           </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setDeleteEquipmentModalOpen(true)}
-            className="mt-2 text-xs text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <Settings className="h-3 w-3 mr-1" />
-            Gerenciar Equipamentos
-          </Button>
         </div>
       </footer>
 
@@ -288,11 +275,6 @@ const Home = () => {
         onSubmit={handleCreateReservation}
       />
 
-      <AddEquipmentModal
-        open={addEquipmentModalOpen}
-        onClose={() => setAddEquipmentModalOpen(false)}
-        onSubmit={handleAddEquipment}
-      />
 
       <CalendarReservationModal
         open={calendarReservationModalOpen}
@@ -302,11 +284,11 @@ const Home = () => {
         onSubmit={handleCreateReservation}
       />
 
-      <DeleteEquipmentModal
+      <ManageEquipmentModal
         isOpen={deleteEquipmentModalOpen}
         onClose={() => setDeleteEquipmentModalOpen(false)}
         equipments={equipments}
-        onEquipmentDeleted={loadData}
+        onEquipmentChanged={loadData}
       />
     </div>
   );
