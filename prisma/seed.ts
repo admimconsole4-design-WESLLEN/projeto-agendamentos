@@ -7,33 +7,53 @@ async function main() {
 
   // Limpar dados existentes
   await prisma.reservation.deleteMany();
-  await prisma.timeSlot.deleteMany();
+  await prisma.lesson.deleteMany();
+  await prisma.period.deleteMany();
   await prisma.equipment.deleteMany();
 
   console.log('✅ Dados antigos removidos');
 
-  // Inserir time slots padrão
-  const timeSlots = await prisma.timeSlot.createMany({
-    data: [
-      {
-        startTime: '07:00',
-        endTime: '11:20',
-        label: 'Manhã'
-      },
-      {
-        startTime: '13:00',
-        endTime: '17:00',
-        label: 'Tarde'
-      },
-      {
-        startTime: '18:00',
-        endTime: '21:00',
-        label: 'Noite'
-      }
-    ]
+  // Criar períodos
+  const manha = await prisma.period.create({
+    data: {
+      name: 'Manhã',
+      order: 1
+    }
   });
 
-  console.log(`✅ ${timeSlots.count} time slots criados`);
+  const tarde = await prisma.period.create({
+    data: {
+      name: 'Tarde',
+      order: 2
+    }
+  });
+
+  const noite = await prisma.period.create({
+    data: {
+      name: 'Noite',
+      order: 3
+    }
+  });
+
+  console.log('✅ 3 períodos criados (Manhã, Tarde, Noite)');
+
+  // Criar aulas para cada período (5 aulas por período)
+  const periodos = [manha, tarde, noite];
+  
+  for (const periodo of periodos) {
+    for (let i = 1; i <= 5; i++) {
+      await prisma.lesson.create({
+        data: {
+          periodId: periodo.id,
+          lessonNumber: i,
+          label: `Aula ${i}`,
+          order: i
+        }
+      });
+    }
+  }
+
+  console.log('✅ 15 aulas criadas (5 aulas por período)');
 
   // Inserir equipamentos exemplo
   const equipments = await prisma.equipment.createMany({
@@ -64,6 +84,11 @@ async function main() {
   console.log(`✅ ${equipments.count} equipamentos criados`);
 
   console.log('🎉 Seed concluído com sucesso!');
+  console.log('');
+  console.log('📚 Estrutura criada:');
+  console.log('  - 3 Períodos: Manhã, Tarde, Noite');
+  console.log('  - 15 Aulas: 5 aulas por período');
+  console.log('  - 5 Equipamentos disponíveis');
 }
 
 main()

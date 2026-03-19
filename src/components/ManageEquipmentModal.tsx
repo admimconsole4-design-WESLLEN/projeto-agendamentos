@@ -25,9 +25,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Trash2, ArrowLeft, Plus, Minus, Loader2, CalendarX } from "lucide-react";
-import { Equipment, Reservation, deleteEquipment, createEquipment, deleteReservation } from "@/lib/supabase";
+import { Equipment, Reservation, Period, deleteEquipment, createEquipment, deleteReservation } from "@/lib/supabase";
 import { toast } from "sonner";
-import { format, parse, isAfter } from "date-fns";
+import { format, parse, isAfter, isToday, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface ManageEquipmentModalProps {
@@ -35,6 +35,7 @@ interface ManageEquipmentModalProps {
   onClose: () => void;
   equipments: Equipment[];
   reservations: Reservation[];
+  periods: Period[];
   onEquipmentChanged: () => void;
 }
 
@@ -47,6 +48,7 @@ export function ManageEquipmentModal({
   onClose,
   equipments,
   reservations,
+  periods,
   onEquipmentChanged,
 }: ManageEquipmentModalProps) {
   const [pin, setPin] = useState("");
@@ -62,25 +64,35 @@ export function ManageEquipmentModal({
   const [newDescription, setNewDescription] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Filter future reservations only
+  // Filter future reservations only (hoje ou datas futuras)
   const futureReservations = useMemo(() => {
-    const now = new Date();
-    return reservations.filter((reservation) => {
-      const reservationDateTime = parse(
-        `${reservation.date} ${reservation.startTime}`,
-        "yyyy-MM-dd HH:mm:ss",
-        new Date()
-      );
-      return isAfter(reservationDateTime, now);
-    }).sort((a, b) => {
-      const dateA = parse(`${a.date} ${a.startTime}`, "yyyy-MM-dd HH:mm:ss", new Date());
-      const dateB = parse(`${b.date} ${b.startTime}`, "yyyy-MM-dd HH:mm:ss", new Date());
-      return dateA.getTime() - dateB.getTime();
-    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return reservations
+      .filter((reservation) => {
+        const reservationDate = parse(reservation.date, "yyyy-MM-dd", new Date());
+        return isToday(reservationDate) || isAfter(reservationDate, today);
+      })
+      .sort((a, b) => {
+        const dateA = parse(a.date, "yyyy-MM-dd", new Date());
+        const dateB = parse(b.date, "yyyy-MM-dd", new Date());
+        return dateA.getTime() - dateB.getTime();
+      });
   }, [reservations]);
 
   const getEquipmentName = (equipmentId: string) => {
     return equipments.find(e => e.id === equipmentId)?.name || "Equipamento";
+  };
+
+  const getPeriodName = (periodId: string) => {
+    return periods.find(p => p.id === periodId)?.name || "Turno";
+  };
+
+  const getLessonLabel = (periodId: string, lessonNumber: number) => {
+    const period = periods.find(p => p.id === periodId);
+    const lesson = period?.lessons?.find(l => l.lessonNumber === lessonNumber);
+    return lesson?.label || `${lessonNumber}ª aula`;
   };
 
   const handlePinComplete = (value: string) => {
@@ -363,7 +375,7 @@ export function ManageEquipmentModal({
                           {getEquipmentName(reservation.equipmentId)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {format(parse(reservation.date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy", { locale: ptBR })} • {reservation.startTime.slice(0, 5)} - {reservation.endTime.slice(0, 5)}
+                          {format(parse(reservation.date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy", { locale: ptBR })} • {getPeriodName(reservation.periodId)} - {getLessonLabel(reservation.periodId, reservation.lessonNumber)}
                         </p>
                       </div>
                       <Button

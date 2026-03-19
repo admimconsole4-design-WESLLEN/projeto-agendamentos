@@ -53,40 +53,50 @@ app.delete('/api/equipments/:id', async (req, res) => {
   }
 });
 
-// === ROTAS DE TIME SLOTS ===
+// === ROTAS DE PERÍODOS ===
 
-// Listar todos os time slots
-app.get('/api/time-slots', async (req, res) => {
+// Listar todos os períodos
+app.get('/api/periods', async (req, res) => {
   try {
-    const timeSlots = await prisma.timeSlot.findMany({
-      orderBy: { startTime: 'asc' }
+    const periods = await prisma.period.findMany({
+      orderBy: { order: 'asc' },
+      include: {
+        lessons: {
+          orderBy: { order: 'asc' }
+        }
+      }
     });
-    res.json(timeSlots);
+    res.json(periods);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Criar time slot
-app.post('/api/time-slots', async (req, res) => {
+// === ROTAS DE AULAS ===
+
+// Listar todas as aulas
+app.get('/api/lessons', async (req, res) => {
   try {
-    const { startTime, endTime, label } = req.body;
-    const timeSlot = await prisma.timeSlot.create({
-      data: { startTime, endTime, label }
+    const lessons = await prisma.lesson.findMany({
+      orderBy: { order: 'asc' },
+      include: {
+        period: true
+      }
     });
-    res.json(timeSlot);
+    res.json(lessons);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Deletar time slot
-app.delete('/api/time-slots/:id', async (req, res) => {
+// Listar aulas de um período específico
+app.get('/api/lessons/period/:periodId', async (req, res) => {
   try {
-    await prisma.timeSlot.delete({
-      where: { id: req.params.id }
+    const lessons = await prisma.lesson.findMany({
+      where: { periodId: req.params.periodId },
+      orderBy: { order: 'asc' }
     });
-    res.json({ success: true });
+    res.json(lessons);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -104,7 +114,8 @@ app.get('/api/reservations', async (req, res) => {
       where,
       orderBy: [
         { date: 'asc' },
-        { startTime: 'asc' }
+        { periodId: 'asc' },
+        { lessonNumber: 'asc' }
       ],
       include: {
         equipment: true
@@ -119,24 +130,21 @@ app.get('/api/reservations', async (req, res) => {
 // Criar reserva
 app.post('/api/reservations', async (req, res) => {
   try {
-    const { equipmentId, name, date, startTime, endTime } = req.body;
+    const { equipmentId, name, date, periodId, lessonNumber } = req.body;
     
-    // Verificar conflitos
-    const conflicts = await prisma.reservation.findMany({
+    // Verificar se já existe reserva para esta aula
+    const existingReservation = await prisma.reservation.findFirst({
       where: {
         equipmentId,
         date,
-        OR: [
-          { AND: [{ startTime: { lte: startTime } }, { endTime: { gt: startTime } }] },
-          { AND: [{ startTime: { lt: endTime } }, { endTime: { gte: endTime } }] },
-          { AND: [{ startTime: { gte: startTime } }, { endTime: { lte: endTime } }] }
-        ]
+        periodId,
+        lessonNumber
       }
     });
 
-    if (conflicts.length > 0) {
+    if (existingReservation) {
       return res.status(400).json({ 
-        error: "Este equipamento já está reservado para o horário selecionado" 
+        error: "Esta aula já está reservada para este equipamento" 
       });
     }
 
@@ -145,11 +153,69 @@ app.post('/api/reservations', async (req, res) => {
         equipmentId,
         name,
         date,
-        startTime,
-        endTime
+        periodId,
+        lessonNumber
       }
     });
     res.json(reservation);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Criar múltiplas reservas (várias aulas de uma vez)
+app.post('/api/reservations/batch', async (req, res) => {
+  try {
+    const { equipmentId, name, date, reservations } = req.body;
+    
+    // reservations é um array de { periodId, lessonNumber }
+    const createdReservations = [];
+    const errors = [];
+
+    for (const reservationData of reservations) {
+      try {
+        // Verificar se já existe
+        const existing = await prisma.reservation.findFirst({
+          where: {
+            equipmentId,
+            date,
+            periodId: reservationData.periodId,
+            lessonNumber: reservationData.lessonNumber
+          }
+        });
+
+        if (existing) {
+          errors.push({
+            ...reservationData,
+            error: 'Aula já reservada'
+          });
+          continue;
+        }
+
+        const reservation = await prisma.reservation.create({
+          data: {
+            equipmentId,
+            name,
+            date,
+            periodId: reservationData.periodId,
+            lessonNumber: reservationData.lessonNumber
+          }
+        });
+
+        createdReservations.push(reservation);
+      } catch (err: any) {
+        errors.push({
+          ...reservationData,
+          error: err.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      created: createdReservations,
+      errors
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -167,24 +233,21 @@ app.delete('/api/reservations/:id', async (req, res) => {
   }
 });
 
-// Verificar disponibilidade
+// Verificar disponibilidade de uma aula específica
 app.post('/api/check-availability', async (req, res) => {
   try {
-    const { equipmentId, date, startTime, endTime } = req.body;
+    const { equipmentId, date, periodId, lessonNumber } = req.body;
     
-    const conflicts = await prisma.reservation.findMany({
+    const existing = await prisma.reservation.findFirst({
       where: {
         equipmentId,
         date,
-        OR: [
-          { AND: [{ startTime: { lte: startTime } }, { endTime: { gt: startTime } }] },
-          { AND: [{ startTime: { lt: endTime } }, { endTime: { gte: endTime } }] },
-          { AND: [{ startTime: { gte: startTime } }, { endTime: { lte: endTime } }] }
-        ]
+        periodId,
+        lessonNumber
       }
     });
 
-    res.json({ available: conflicts.length === 0 });
+    res.json({ available: !existing });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -196,7 +259,7 @@ app.get('*', (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
   console.log(`🌐 Acessível na rede em http://192.168.0.12:${PORT}`);
   

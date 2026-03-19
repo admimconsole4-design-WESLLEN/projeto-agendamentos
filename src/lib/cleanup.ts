@@ -1,27 +1,18 @@
 import { prisma } from './db';
 
 /**
- * Remove reservas que já passaram do horário
- * Reservas são consideradas expiradas quando:
- * - A data é anterior a hoje, OU
- * - A data é hoje e o horário de término já passou
+ * Remove reservas que já passaram da data
+ * Reservas são consideradas expiradas quando a data é anterior a hoje
  */
 export async function cleanupExpiredReservations() {
   const now = new Date();
   const today = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
-  const currentTime = now.toTimeString().slice(0, 5); // Formato HH:MM
 
   const result = await prisma.reservation.deleteMany({
     where: {
-      OR: [
-        // Reservas de dias anteriores
-        { date: { lt: today } },
-        // Reservas de hoje que já terminaram
-        { 
-          date: today,
-          endTime: { lte: currentTime }
-        }
-      ]
+      date: {
+        lt: today
+      }
     }
   });
 

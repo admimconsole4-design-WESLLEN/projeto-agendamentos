@@ -15,10 +15,12 @@ import logoEscola from "@/assets/logo-escola.jpg";
 import {
   getEquipments,
   getReservations,
-  createReservation,
+  createBatchReservations,
   createEquipment,
+  getPeriods,
   type Equipment,
   type Reservation,
+  type Period,
 } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -27,6 +29,7 @@ const Home = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [allReservations, setAllReservations] = useState<Reservation[]>([]);
+  const [periods, setPeriods] = useState<Period[]>([]);
   const [equipmentsWithReservations, setEquipmentsWithReservations] = useState<Set<string>>(new Set());
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
@@ -44,6 +47,7 @@ const Home = () => {
   useEffect(() => {
     if (date) {
       loadReservations();
+      loadPeriods();
     }
   }, [date, equipments]);
 
@@ -58,6 +62,15 @@ const Home = () => {
     }
   };
 
+  const loadPeriods = async () => {
+    try {
+      const periodsData = await getPeriods();
+      setPeriods(periodsData);
+    } catch (error: any) {
+      toast.error("Erro ao carregar períodos: " + error.message);
+    }
+  };
+
   const loadReservations = async () => {
     try {
       // Load all reservations (not filtered by date) for the management modal
@@ -65,20 +78,10 @@ const Home = () => {
       
       // Filter for the selected date for display
       const dateStr = format(date, "yyyy-MM-dd");
-      const now = new Date();
-      const today = format(now, "yyyy-MM-dd");
-      const currentTime = format(now, "HH:mm:ss");
       
-      const dateFilteredReservations = allReservationsData.filter(r => r.date === dateStr);
-      
-      const activeReservations = dateFilteredReservations.filter(reservation => {
-        // Se a data selecionada é hoje, verificar se o horário já passou
-        if (dateStr === today) {
-          return reservation.endTime > currentTime;
-        }
-        // Se é data futura, todas as reservas são ativas
-        return true;
-      });
+      // No novo modelo baseado em aulas, todas as reservas do dia são válidas
+      // Não há mais verificação de horário expirado
+      const activeReservations = allReservationsData.filter(r => r.date === dateStr);
       
       setReservations(activeReservations);
       setAllReservations(allReservationsData);
@@ -100,17 +103,32 @@ const Home = () => {
     equipmentId: string;
     name: string;
     date: string;
-    startTime: string;
-    endTime: string;
+    reservations: Array<{ periodId: string; lessonNumber: number }>;
   }) => {
-    await createReservation(
+    const result = await createBatchReservations(
       data.equipmentId,
       data.name,
       data.date,
-      data.startTime,
-      data.endTime
-    );
-    await loadReservations();
+      data.reservations
+    ) as { success: boolean; created: any[]; errors: any[] };
+    
+    // Verificar se houve erros
+    if (result.errors && result.errors.length > 0) {
+      const errorMessages = result.errors.map((err: any) => {
+        const period = periods.find(p => p.id === err.periodId);
+        return `Aula ${err.lessonNumber} do ${period?.name || 'Turno'}`;
+      }).join(', ');
+      
+      toast.error(`As seguintes aulas já estão reservadas: ${errorMessages}`);
+    }
+    
+    // Se pelo menos uma reserva foi criada, recarregar
+    if (result.created && result.created.length > 0) {
+      await loadReservations();
+    } else if (result.errors && result.errors.length > 0) {
+      // Se nenhuma foi criada e todas deram erro, lançar erro
+      throw new Error('Nenhuma reserva foi criada - todas as aulas selecionadas já estão reservadas');
+    }
   };
 
 
@@ -222,6 +240,7 @@ const Home = () => {
                 <OccupiedTimeSlots
                   reservations={reservations}
                   equipments={equipments}
+                  periods={periods}
                   selectedDate={date}
                 />
               </div>
@@ -294,6 +313,7 @@ const Home = () => {
         onClose={() => setDeleteEquipmentModalOpen(false)}
         equipments={equipments}
         reservations={allReservations}
+        periods={periods}
         onEquipmentChanged={loadData}
       />
     </div>

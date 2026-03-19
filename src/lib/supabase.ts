@@ -8,11 +8,22 @@ export type Equipment = {
   updatedAt: Date;
 };
 
-export type TimeSlot = {
+export type Period = {
   id: string;
-  startTime: string;
-  endTime: string;
-  label: string | null;
+  name: string;
+  order: number;
+  lessons?: Lesson[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type Lesson = {
+  id: string;
+  periodId: string;
+  lessonNumber: number;
+  label: string;
+  order: number;
+  period?: Period;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -23,8 +34,8 @@ export type Reservation = {
   name: string;
   phone: string | null;
   date: string;
-  startTime: string;
-  endTime: string;
+  periodId: string;
+  lessonNumber: number;
   createdAt: Date;
   updatedAt: Date;
   equipment?: Equipment;

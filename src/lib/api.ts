@@ -38,23 +38,20 @@ export const deleteEquipment = async (id: string) => {
   });
 };
 
-// === TIME SLOTS ===
+// === PERIODS ===
 
-export const getTimeSlots = async () => {
-  return await apiRequest('/api/time-slots');
+export const getPeriods = async () => {
+  return await apiRequest('/api/periods');
 };
 
-export const createTimeSlot = async (startTime: string, endTime: string, label?: string) => {
-  return await apiRequest('/api/time-slots', {
-    method: 'POST',
-    body: JSON.stringify({ startTime, endTime, label }),
-  });
+// === LESSONS ===
+
+export const getLessons = async () => {
+  return await apiRequest('/api/lessons');
 };
 
-export const deleteTimeSlot = async (id: string) => {
-  return await apiRequest(`/api/time-slots/${id}`, {
-    method: 'DELETE',
-  });
+export const getLessonsByPeriod = async (periodId: string) => {
+  return await apiRequest(`/api/lessons/period/${periodId}`);
 };
 
 // === RESERVATIONS ===
@@ -68,8 +65,8 @@ export const createReservation = async (
   equipmentId: string,
   name: string,
   date: string,
-  startTime: string,
-  endTime: string
+  periodId: string,
+  lessonNumber: number
 ) => {
   return await apiRequest('/api/reservations', {
     method: 'POST',
@@ -77,8 +74,25 @@ export const createReservation = async (
       equipmentId,
       name,
       date,
-      startTime,
-      endTime,
+      periodId,
+      lessonNumber
+    }),
+  });
+};
+
+export const createBatchReservations = async (
+  equipmentId: string,
+  name: string,
+  date: string,
+  reservations: Array<{ periodId: string; lessonNumber: number }>
+) => {
+  return await apiRequest('/api/reservations/batch', {
+    method: 'POST',
+    body: JSON.stringify({
+      equipmentId,
+      name,
+      date,
+      reservations
     }),
   });
 };
@@ -89,19 +103,19 @@ export const deleteReservation = async (id: string) => {
   });
 };
 
-export const checkEquipmentAvailability = async (
+export const checkLessonAvailability = async (
   equipmentId: string,
   date: string,
-  startTime: string,
-  endTime: string
+  periodId: string,
+  lessonNumber: number
 ) => {
   const result = await apiRequest('/api/check-availability', {
     method: 'POST',
     body: JSON.stringify({
       equipmentId,
       date,
-      startTime,
-      endTime,
+      periodId,
+      lessonNumber
     }),
   });
   return result.available;

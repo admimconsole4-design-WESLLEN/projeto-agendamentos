@@ -19,13 +19,26 @@ model Equipment {
   reservations Reservation[]
 }
 
-model TimeSlot {
+model Period {
   id        String   @id @default(uuid())
-  startTime String
-  endTime   String
-  label     String?
+  name      String   // Manhã, Tarde, Noite
+  order     Int      // 1, 2, 3 para ordenação
+  lessons   Lesson[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Lesson {
+  id          String   @id @default(uuid())
+  periodId    String
+  lessonNumber Int     // 1, 2, 3, 4, 5
+  label       String   // Aula 1, Aula 2, etc.
+  order       Int      // Para ordenação dentro do período
+  period      Period   @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([periodId, lessonNumber])
 }
 
 model Reservation {
@@ -34,9 +47,11 @@ model Reservation {
   name        String
   phone       String?
   date        String
-  startTime   String
-  endTime     String
+  periodId    String
+  lessonNumber Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  
+  @@unique([equipmentId, date, periodId, lessonNumber])
 }
