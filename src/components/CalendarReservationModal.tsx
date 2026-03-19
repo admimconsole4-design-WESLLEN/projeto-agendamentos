@@ -50,8 +50,9 @@ export const CalendarReservationModal = ({
     try {
       const data = await getPeriods();
       setPeriods(data);
-    } catch (error: any) {
-      toast.error("Erro ao carregar períodos: " + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error("Erro ao carregar períodos: " + errorMessage);
     } finally {
       setLoadingPeriods(false);
     }
@@ -90,8 +91,9 @@ export const CalendarReservationModal = ({
       setSelectedLessons([]);
       onClose();
       toast.success(`${selectedLessons.length} reserva(s) criada(s) com sucesso!`);
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao criar reserva");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar reserva';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

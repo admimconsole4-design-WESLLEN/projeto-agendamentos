@@ -55,8 +55,9 @@ const Home = () => {
     try {
       const equipmentsData = await getEquipments();
       setEquipments(equipmentsData);
-    } catch (error: any) {
-      toast.error("Erro ao carregar dados: " + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error("Erro ao carregar dados: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -66,8 +67,9 @@ const Home = () => {
     try {
       const periodsData = await getPeriods();
       setPeriods(periodsData);
-    } catch (error: any) {
-      toast.error("Erro ao carregar períodos: " + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error("Erro ao carregar períodos: " + errorMessage);
     }
   };
 
@@ -89,8 +91,9 @@ const Home = () => {
       // Marcar equipamentos que têm alguma reserva (parcialmente ocupados)
       const occupiedIds = new Set<string>(activeReservations.map(r => r.equipmentId));
       setEquipmentsWithReservations(occupiedIds);
-    } catch (error: any) {
-      toast.error("Erro ao carregar reservas: " + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error("Erro ao carregar reservas: " + errorMessage);
     }
   };
 
@@ -110,11 +113,11 @@ const Home = () => {
       data.name,
       data.date,
       data.reservations
-    ) as { success: boolean; created: any[]; errors: any[] };
+    ) as { success: boolean; created: unknown[]; errors: Array<{ periodId: string; lessonNumber: number }> };
     
     // Verificar se houve erros
     if (result.errors && result.errors.length > 0) {
-      const errorMessages = result.errors.map((err: any) => {
+      const errorMessages = result.errors.map((err) => {
         const period = periods.find(p => p.id === err.periodId);
         return `Aula ${err.lessonNumber} do ${period?.name || 'Turno'}`;
       }).join(', ');

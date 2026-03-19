@@ -39,8 +39,9 @@ export const AddEquipmentModal = ({ open, onClose, onSubmit }: AddEquipmentModal
       setName("");
       setDescription("");
       onClose();
-    } catch (error: any) {
-      toast.error("Erro ao adicionar equipamento: " + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error("Erro ao adicionar equipamento: " + errorMessage);
     } finally {
       setLoading(false);
     }
