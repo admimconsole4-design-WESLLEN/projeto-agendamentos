@@ -67,14 +67,14 @@ export function ManageEquipmentModal({
     const now = new Date();
     return reservations.filter((reservation) => {
       const reservationDateTime = parse(
-        `${reservation.date} ${reservation.start_time}`,
+        `${reservation.date} ${reservation.startTime}`,
         "yyyy-MM-dd HH:mm:ss",
         new Date()
       );
       return isAfter(reservationDateTime, now);
     }).sort((a, b) => {
-      const dateA = parse(`${a.date} ${a.start_time}`, "yyyy-MM-dd HH:mm:ss", new Date());
-      const dateB = parse(`${b.date} ${b.start_time}`, "yyyy-MM-dd HH:mm:ss", new Date());
+      const dateA = parse(`${a.date} ${a.startTime}`, "yyyy-MM-dd HH:mm:ss", new Date());
+      const dateB = parse(`${b.date} ${b.startTime}`, "yyyy-MM-dd HH:mm:ss", new Date());
       return dateA.getTime() - dateB.getTime();
     });
   }, [reservations]);
@@ -360,10 +360,10 @@ export function ManageEquipmentModal({
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{reservation.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {getEquipmentName(reservation.equipment_id)}
+                          {getEquipmentName(reservation.equipmentId)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {format(parse(reservation.date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy", { locale: ptBR })} • {reservation.start_time.slice(0, 5)} - {reservation.end_time.slice(0, 5)}
+                          {format(parse(reservation.date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy", { locale: ptBR })} • {reservation.startTime.slice(0, 5)} - {reservation.endTime.slice(0, 5)}
                         </p>
                       </div>
                       <Button

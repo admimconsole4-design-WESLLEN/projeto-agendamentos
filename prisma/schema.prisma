@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Equipment {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  reservations Reservation[]
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  startTime String
+  endTime   String
+  label     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Reservation {
+  id          String   @id @default(uuid())
+  equipmentId String
+  name        String
+  phone       String?
+  date        String
+  startTime   String
+  endTime     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+}

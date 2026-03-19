@@ -24,7 +24,7 @@ export const OccupiedTimeSlots = ({ reservations, equipments, selectedDate }: Oc
       <CardContent>
         <div className="space-y-2">
           {reservations.map((reservation) => {
-            const equipment = equipments.find(e => e.id === reservation.equipment_id);
+            const equipment = equipments.find(e => e.id === reservation.equipmentId);
             return (
               <div
                 key={reservation.id}
@@ -36,7 +36,7 @@ export const OccupiedTimeSlots = ({ reservations, equipments, selectedDate }: Oc
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold text-amber-600">
-                    {reservation.start_time.substring(0, 5)} - {reservation.end_time.substring(0, 5)}
+                    {reservation.startTime.substring(0, 5)} - {reservation.endTime.substring(0, 5)}
                   </p>
                 </div>
               </div>

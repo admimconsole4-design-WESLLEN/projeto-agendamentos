@@ -74,7 +74,7 @@ const Home = () => {
       const activeReservations = dateFilteredReservations.filter(reservation => {
         // Se a data selecionada é hoje, verificar se o horário já passou
         if (dateStr === today) {
-          return reservation.end_time > currentTime;
+          return reservation.endTime > currentTime;
         }
         // Se é data futura, todas as reservas são ativas
         return true;
@@ -84,7 +84,7 @@ const Home = () => {
       setAllReservations(allReservationsData);
       
       // Marcar equipamentos que têm alguma reserva (parcialmente ocupados)
-      const occupiedIds = new Set(activeReservations.map(r => r.equipment_id));
+      const occupiedIds = new Set<string>(activeReservations.map(r => r.equipmentId));
       setEquipmentsWithReservations(occupiedIds);
     } catch (error: any) {
       toast.error("Erro ao carregar reservas: " + error.message);
