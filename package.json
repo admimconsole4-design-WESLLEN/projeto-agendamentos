@@ -12,7 +12,12 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset && npm run db:seed",
     "server": "tsx server.ts",
-    "dev:full": "npm run build && npm run server"
+    "dev:full": "npm run build && npm run server",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:all": "tsx tests/run-all-tests.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -80,10 +85,11 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/node": "^22.16.5",
+    "@types/node": "^22.19.15",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitest/ui": "^4.1.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -96,6 +102,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "vitest": "^4.1.0"
   }
 }
