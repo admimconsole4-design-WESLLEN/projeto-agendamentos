@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Equipment, Period } from "@/lib/supabase";
-import { getPeriods } from "@/lib/supabase";
+import { getPeriods, getReservations } from "@/lib/supabase";
 import { LessonSelector } from "./LessonSelector";
 import { toast } from "sonner";
 
@@ -36,14 +36,24 @@ export const CalendarReservationModal = ({
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedLessons, setSelectedLessons] = useState<Array<{ periodId: string; lessonNumber: number }>>([]);
+  const [existingReservations, setExistingReservations] = useState<Array<{ periodId: string; lessonNumber: number }>>([]);
   const [loading, setLoading] = useState(false);
   const [loadingPeriods, setLoadingPeriods] = useState(false);
+  const [loadingReservations, setLoadingReservations] = useState(false);
 
   useEffect(() => {
     if (open) {
       loadPeriods();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && selectedEquipmentId && selectedDate) {
+      loadExistingReservations();
+    } else {
+      setExistingReservations([]);
+    }
+  }, [open, selectedEquipmentId, selectedDate]);
 
   const loadPeriods = async () => {
     setLoadingPeriods(true);
@@ -55,6 +65,28 @@ export const CalendarReservationModal = ({
       toast.error("Erro ao carregar períodos: " + errorMessage);
     } finally {
       setLoadingPeriods(false);
+    }
+  };
+
+  const loadExistingReservations = async () => {
+    if (!selectedEquipmentId || !selectedDate) return;
+
+    setLoadingReservations(true);
+    try {
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const allReservations = await getReservations();
+      
+      // Filtrar reservas para este equipamento e data
+      const equipmentReservations = allReservations
+        .filter(r => r.equipmentId === selectedEquipmentId && r.date === dateStr)
+        .map(r => ({ periodId: r.periodId, lessonNumber: r.lessonNumber }));
+      
+      setExistingReservations(equipmentReservations);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error("Erro ao carregar reservas existentes: " + errorMessage);
+    } finally {
+      setLoadingReservations(false);
     }
   };
 
@@ -89,6 +121,7 @@ export const CalendarReservationModal = ({
       setName("");
       setSelectedEquipmentId("");
       setSelectedLessons([]);
+      setExistingReservations([]);
       onClose();
       toast.success(`${selectedLessons.length} reserva(s) criada(s) com sucesso!`);
     } catch (error) {
@@ -103,6 +136,7 @@ export const CalendarReservationModal = ({
     setName("");
     setSelectedEquipmentId("");
     setSelectedLessons([]);
+    setExistingReservations([]);
     onClose();
   };
 
@@ -147,7 +181,7 @@ export const CalendarReservationModal = ({
             
             <div className="grid gap-2">
               <Label>Selecione as Aulas *</Label>
-              {loadingPeriods ? (
+              {loadingPeriods || loadingReservations ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
@@ -156,6 +190,7 @@ export const CalendarReservationModal = ({
                   periods={periods}
                   selectedLessons={selectedLessons}
                   onLessonChange={setSelectedLessons}
+                  existingReservations={existingReservations}
                 />
               )}
               <p className="text-xs text-muted-foreground">

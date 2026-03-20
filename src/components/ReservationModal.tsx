@@ -9,8 +9,8 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import type { Equipment, Period } from "@/lib/supabase";
-import { getPeriods } from "@/lib/supabase";
+import type { Equipment, Period, Reservation } from "@/lib/supabase";
+import { getPeriods, getReservations } from "@/lib/supabase";
 import { LessonSelector } from "./LessonSelector";
 import { toast } from "sonner";
 
@@ -36,8 +36,10 @@ export const ReservationModal = ({
   const [date, setDate] = useState<Date>();
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedLessons, setSelectedLessons] = useState<Array<{ periodId: string; lessonNumber: number }>>([]);
+  const [existingReservations, setExistingReservations] = useState<Array<{ periodId: string; lessonNumber: number }>>([]);
   const [loading, setLoading] = useState(false);
   const [loadingPeriods, setLoadingPeriods] = useState(false);
+  const [loadingReservations, setLoadingReservations] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -45,15 +47,46 @@ export const ReservationModal = ({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (open && equipment && date) {
+      loadExistingReservations();
+    } else {
+      setExistingReservations([]);
+    }
+  }, [open, equipment, date]);
+
   const loadPeriods = async () => {
     setLoadingPeriods(true);
     try {
       const data = await getPeriods();
       setPeriods(data);
-    } catch (error: any) {
-      toast.error("Erro ao carregar períodos: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error("Erro ao carregar períodos: " + errorMessage);
     } finally {
       setLoadingPeriods(false);
+    }
+  };
+
+  const loadExistingReservations = async () => {
+    if (!equipment || !date) return;
+
+    setLoadingReservations(true);
+    try {
+      const dateStr = format(date, "yyyy-MM-dd");
+      const allReservations = await getReservations();
+      
+      // Filtrar reservas para este equipamento e data
+      const equipmentReservations = allReservations
+        .filter(r => r.equipmentId === equipment.id && r.date === dateStr)
+        .map(r => ({ periodId: r.periodId, lessonNumber: r.lessonNumber }));
+      
+      setExistingReservations(equipmentReservations);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error("Erro ao carregar reservas existentes: " + errorMessage);
+    } finally {
+      setLoadingReservations(false);
     }
   };
 
@@ -88,10 +121,12 @@ export const ReservationModal = ({
       setName("");
       setDate(undefined);
       setSelectedLessons([]);
+      setExistingReservations([]);
       onClose();
       toast.success(`${selectedLessons.length} reserva(s) criada(s) com sucesso!`);
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao criar reserva");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar reserva';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -151,7 +186,7 @@ export const ReservationModal = ({
 
             <div className="grid gap-2">
               <Label>Selecione as Aulas *</Label>
-              {loadingPeriods ? (
+              {loadingPeriods || loadingReservations ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
@@ -160,6 +195,7 @@ export const ReservationModal = ({
                   periods={periods}
                   selectedLessons={selectedLessons}
                   onLessonChange={setSelectedLessons}
+                  existingReservations={existingReservations}
                 />
               )}
               <p className="text-xs text-muted-foreground">
