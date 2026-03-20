@@ -261,7 +261,7 @@ app.get('*', (req, res) => {
 // Iniciar servidor
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
-  console.log(`🌐 Acessível na rede em http://192.168.0.12:${PORT}`);
+  console.log(`🌐 Acessível na rede em http://192.168.0.19:${PORT}`);
   
   // Iniciar limpeza automática
   startAutoCleanup(5);
