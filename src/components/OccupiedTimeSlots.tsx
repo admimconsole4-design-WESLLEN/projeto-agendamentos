@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock } from "lucide-react";
 import type { Reservation, Equipment, Period } from "@/lib/supabase";
 
@@ -17,6 +19,8 @@ interface GroupedReservation {
 }
 
 export const OccupiedTimeSlots = ({ reservations, equipments, periods, selectedDate }: OccupiedTimeSlotsProps) => {
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>("all");
+
   const getPeriodName = (periodId: string) => {
     const period = periods.find(p => p.id === periodId);
     return period?.name || '';
@@ -28,8 +32,13 @@ export const OccupiedTimeSlots = ({ reservations, equipments, periods, selectedD
     return lesson?.label || `${lessonNumber}ª aula`;
   };
 
+  // Filtrar reservas por equipamento selecionado
+  const filteredReservations = selectedEquipmentId === "all" 
+    ? reservations 
+    : reservations.filter(r => r.equipmentId === selectedEquipmentId);
+
   // Agrupar reservas por equipamento e pessoa
-  const groupedReservations = reservations.reduce((acc, reservation) => {
+  const groupedReservations = filteredReservations.reduce((acc, reservation) => {
     const equipment = equipments.find(e => e.id === reservation.equipmentId);
     if (!equipment) return acc;
 
@@ -75,53 +84,78 @@ export const OccupiedTimeSlots = ({ reservations, equipments, periods, selectedD
           Aulas Ocupadas
         </CardTitle>
         <CardDescription>
-          {reservations.length > 0 
-            ? `${reservations.length} aula(s) reservada(s)`
+          {filteredReservations.length > 0 
+            ? `${filteredReservations.length} aula(s) reservada(s)`
             : 'Nenhuma aula reservada'}
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Filtro de Equipamentos */}
+        <div className="mb-4">
+          <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filtrar por equipamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Equipamentos</SelectItem>
+              {equipments.map((equipment) => (
+                <SelectItem key={equipment.id} value={equipment.id}>
+                  {equipment.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-2">
-          {groupedList.map((group, idx) => {
-            // Agrupar as aulas por período
-            const lessonsByPeriod = group.lessons.reduce((acc, lesson) => {
-              if (!acc[lesson.periodName]) {
-                acc[lesson.periodName] = [];
-              }
-              acc[lesson.periodName].push(lesson.lessonNumber);
-              return acc;
-            }, {} as Record<string, number[]>);
+          {groupedList.length === 0 ? (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              {selectedEquipmentId === "all" 
+                ? "Nenhuma aula reservada nesta data"
+                : "Nenhuma aula reservada para este equipamento nesta data"}
+            </div>
+          ) : (
+            groupedList.map((group, idx) => {
+              // Agrupar as aulas por período
+              const lessonsByPeriod = group.lessons.reduce((acc, lesson) => {
+                if (!acc[lesson.periodName]) {
+                  acc[lesson.periodName] = [];
+                }
+                acc[lesson.periodName].push(lesson.lessonNumber);
+                return acc;
+              }, {} as Record<string, number[]>);
 
-            // Criar string formatada para cada período
-            const periodStrings = Object.entries(lessonsByPeriod).map(([periodName, lessonNumbers]) => {
-              // Ordenar números das aulas
-              lessonNumbers.sort((a, b) => a - b);
-              
-              // Mostrar todas as aulas separadas por vírgula
-              const lessonsList = lessonNumbers.map(n => `${n}ª`).join(', ');
-              
-              return `${periodName}: ${lessonsList}`;
-            });
+              // Criar string formatada para cada período
+              const periodStrings = Object.entries(lessonsByPeriod).map(([periodName, lessonNumbers]) => {
+                // Ordenar números das aulas
+                lessonNumbers.sort((a, b) => a - b);
+                
+                // Mostrar todas as aulas separadas por vírgula
+                const lessonsList = lessonNumbers.map(n => `${n}ª`).join(', ');
+                
+                return `${periodName}: ${lessonsList}`;
+              });
 
-            return (
-              <div
-                key={idx}
-                className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{group.equipmentName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{group.personName}</p>
-                  </div>
-                  <div className="text-right text-xs">
-                    {periodStrings.map((str, i) => (
-                      <p key={i} className="text-amber-600 font-medium">{str}</p>
-                    ))}
+              return (
+                <div
+                  key={idx}
+                  className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{group.equipmentName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{group.personName}</p>
+                    </div>
+                    <div className="text-right text-xs">
+                      {periodStrings.map((str, i) => (
+                        <p key={i} className="text-amber-600 font-medium">{str}</p>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </CardContent>
     </Card>
