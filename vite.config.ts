@@ -8,6 +8,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Configuração CORS para permitir acesso do ngrok
+    cors: true,
+    allowedHosts: [
+      'nonlogistical-krishna-ontogenetical.ngrok-free.dev',
+      '.ngrok-free.dev'
+    ]
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

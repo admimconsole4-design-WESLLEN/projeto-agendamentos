@@ -7,8 +7,27 @@ import { startAutoCleanup } from './src/lib/cleanup.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// Middleware - Configuração CORS para permitir acesso do ngrok
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:8080',
+    'http://localhost:8081',
+    'http://localhost:3001',
+    'http://192.168.0.19:5173',
+    'http://192.168.0.19:8080',
+    'http://192.168.0.19:8081',
+    'http://192.168.0.19:3001',
+    'http://192.168.0.12:5173',
+    'http://192.168.0.12:8080',
+    'http://192.168.0.12:8081',
+    'http://192.168.0.12:3001',
+    'https://nonlogistical-krishna-ontogenetical.ngrok-free.dev'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Servir arquivos estáticos do build
@@ -261,7 +280,7 @@ app.get('*', (req, res) => {
 // Iniciar servidor
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
-  console.log(`🌐 Acessível na rede em http://192.168.0.19:${PORT}`);
+  console.log(`🌐 Acessível na rede em http://192.168.0.12:${PORT}`);
   
   // Iniciar limpeza automática
   startAutoCleanup(5);

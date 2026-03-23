@@ -17,7 +17,9 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "test:all": "tsx tests/run-all-tests.ts"
+    "test:all": "tsx tests/run-all-tests.ts",
+    "ngrok": "ngrok http 3001",
+    "ngrok:dev": "ngrok http 8080"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
