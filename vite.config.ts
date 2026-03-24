@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => ({
     cors: true,
     allowedHosts: [
       'nonlogistical-krishna-ontogenetical.ngrok-free.dev',
-      '.ngrok-free.dev'
+      '.ngrok-free.dev',
+
     ]
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
