@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware - Configuração CORS para permitir acesso do ngrok
-app.use(cors({
+/*app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:8080',
@@ -27,7 +27,9 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+}));*/
+
+app.use(cors());
 app.use(express.json());
 
 // Servir arquivos estáticos do build
