@@ -19,9 +19,11 @@ function getApiBaseUrl(): string {
       const ip = origin.replace(/^http:\/\/([^:]+).*/, '$1');
       return `http://${ip}:3001`;
     }
+
+    // Em produção (Render, Vercel, etc.), usa a mesma origem
+    return origin;
   }
-  
-  // Fallback para variável de ambiente ou localhost
+
   return import.meta.env.VITE_API_URL || 'http://localhost:3001';
 }
 
