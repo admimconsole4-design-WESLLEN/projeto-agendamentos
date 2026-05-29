@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: equipa-agendada
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npx tsx server.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GOOGLE_SCRIPT_URL
+        sync: false

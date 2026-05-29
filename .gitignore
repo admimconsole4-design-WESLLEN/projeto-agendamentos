@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 /generated/prisma
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example

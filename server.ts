@@ -1,4 +1,4 @@
-process.loadEnvFile('.env');
+try { process.loadEnvFile('.env'); } catch { /* sem .env em produção, variáveis vêm do ambiente */ }
 
 import express from 'express';
 import cors from 'cors';

@@ -219,11 +219,11 @@ const Home = () => {
                     locale={ptBR}
                   />
                 </div>
-                
+
                 <p className="text-xs text-muted-foreground mt-2 text-center sm:text-left">
                   Duplo clique na data para agendar
                 </p>
-                
+
                 <div className="mt-4 space-y-2">
                   <h3 className="font-semibold text-sm text-primary">Legenda:</h3>
                   <div className="flex items-center gap-2">
@@ -237,49 +237,47 @@ const Home = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {reservations.length > 0 && (
-              <div className="mt-4 sm:mt-6">
-                <OccupiedTimeSlots
-                  reservations={reservations}
-                  equipments={equipments}
-                  periods={periods}
-                  selectedDate={date}
-                />
-              </div>
-            )}
           </div>
 
-          <div className="lg:col-span-2 order-2 lg:order-2">
-            <div className="mb-4 sm:mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold mb-2 text-primary">
-                Equipamentos
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Selecione um equipamento para reservar.
-              </p>
-            </div>
+          <div className="lg:col-span-2 order-2 lg:order-2 flex flex-col gap-4 sm:gap-6">
+            <OccupiedTimeSlots
+              reservations={reservations}
+              equipments={equipments}
+              periods={periods}
+              selectedDate={date}
+            />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {equipments.map((equipment) => (
-                <EquipmentCard
-                  key={equipment.id}
-                  equipment={equipment}
-                  hasReservations={equipmentsWithReservations.has(equipment.id)}
-                  onReserve={handleReserve}
-                />
-              ))}
-            </div>
+            <div>
+              <div className="mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold mb-2 text-primary">
+                  Equipamentos
+                </h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Selecione um equipamento para reservar.
+                </p>
+              </div>
 
-            {equipments.length === 0 && (
-              <Card className="border-2 border-dashed border-primary/30">
-                <CardContent className="py-8 sm:py-12 text-center">
-                  <p className="text-sm sm:text-base text-muted-foreground">
-                    Nenhum equipamento cadastrado. Clique no botão "Adicionar Equipamento" para começar.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {equipments.map((equipment) => (
+                  <EquipmentCard
+                    key={equipment.id}
+                    equipment={equipment}
+                    hasReservations={equipmentsWithReservations.has(equipment.id)}
+                    onReserve={handleReserve}
+                  />
+                ))}
+              </div>
+
+              {equipments.length === 0 && (
+                <Card className="border-2 border-dashed border-primary/30">
+                  <CardContent className="py-8 sm:py-12 text-center">
+                    <p className="text-sm sm:text-base text-muted-foreground">
+                      Nenhum equipamento cadastrado. Clique no botão "Adicionar Equipamento" para começar.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
       </main>
