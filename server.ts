@@ -283,6 +283,16 @@ app.post('/api/check-availability', async (req, res) => {
   }
 });
 
+app.get('/api/ping', async (_req, res) => {
+  try {
+    const { error } = await supabase.from('periods').select('id').limit(1);
+    if (error) throw error;
+    res.json({ ok: true, time: new Date().toISOString() });
+  } catch (error: unknown) {
+    res.status(500).json({ ok: false, error: errMsg(error) });
+  }
+});
+
 app.get('*', (_req, res) => {
   res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
 });

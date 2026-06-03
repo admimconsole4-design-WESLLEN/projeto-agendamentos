@@ -86,4 +86,5 @@ SELECT id, 5, '5ª Aula', 5 FROM tarde UNION ALL
 SELECT id, 1, '1ª Aula', 1 FROM noite UNION ALL
 SELECT id, 2, '2ª Aula', 2 FROM noite UNION ALL
 SELECT id, 3, '3ª Aula', 3 FROM noite UNION ALL
-SELECT id, 4, '4ª Aula', 4 FROM noite;
+SELECT id, 4, '4ª Aula', 4 FROM noite UNION ALL
+SELECT id, 5, '5ª Aula', 5 FROM noite;
