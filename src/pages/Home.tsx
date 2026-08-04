@@ -290,6 +290,12 @@ const Home = () => {
           <p className="text-xs text-secondary mt-1">
             Ensino Fundamental
           </p>
+           <div className="mt-3 text-[10px] sm:text-xs opacity-70 flex items-center justify-center gap-1">
+      <span>💻</span>
+      <span>
+        Desenvolvido por <strong>Wesllen Fernandes</strong> © {new Date().getFullYear()}
+      </span>
+    </div>
         </div>
       </footer>
 
