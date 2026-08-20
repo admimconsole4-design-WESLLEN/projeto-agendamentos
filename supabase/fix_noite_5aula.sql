@@ -7,3 +7,10 @@ WHERE name = 'Noite'
     SELECT 1 FROM lessons
     WHERE period_id = periods.id AND lesson_number = 5
   );
+
+-- =============================================
+-- Exclui a 3ª, 4ª e 5ª Aula apenas do turno Manhã
+-- =============================================
+DELETE FROM lessons
+WHERE period_id = (SELECT id FROM periods WHERE name = 'Manhã')
+  AND lesson_number IN (3, 4, 5);
