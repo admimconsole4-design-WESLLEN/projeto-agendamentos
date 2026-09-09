@@ -21,6 +21,13 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -58,6 +65,8 @@ export function ManageEquipmentModal({
   const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
+  const [equipmentFilter, setEquipmentFilter] = useState<string>("all");
+  const [periodFilter, setPeriodFilter] = useState<string>("all");
   
   // Add equipment form state
   const [newName, setNewName] = useState("");
@@ -65,10 +74,10 @@ export function ManageEquipmentModal({
   const [isAdding, setIsAdding] = useState(false);
 
   // Filter future reservations only (hoje ou datas futuras)
-  const futureReservations = useMemo(() => {
+  const baseFutureReservations = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     return reservations
       .filter((reservation) => {
         const reservationDate = parse(reservation.date, "yyyy-MM-dd", new Date());
@@ -80,6 +89,38 @@ export function ManageEquipmentModal({
         return dateA.getTime() - dateB.getTime();
       });
   }, [reservations]);
+
+  const futureReservations = useMemo(() => {
+    return baseFutureReservations.filter(
+      (reservation) =>
+        (equipmentFilter === "all" || reservation.equipmentId === equipmentFilter) &&
+        (periodFilter === "all" || reservation.periodId === periodFilter)
+    );
+  }, [baseFutureReservations, equipmentFilter, periodFilter]);
+
+  // Equipamentos que possuem agendamentos futuros (respeitando o filtro de turno)
+  const equipmentsWithReservations = useMemo(() => {
+    const ids = new Set(
+      baseFutureReservations
+        .filter((reservation) => periodFilter === "all" || reservation.periodId === periodFilter)
+        .map((reservation) => reservation.equipmentId)
+    );
+
+    return equipments.filter((equipment) => ids.has(equipment.id));
+  }, [baseFutureReservations, equipments, periodFilter]);
+
+  // Turnos que possuem agendamentos futuros (respeitando o filtro de equipamento)
+  const periodsWithReservations = useMemo(() => {
+    const ids = new Set(
+      baseFutureReservations
+        .filter((reservation) => equipmentFilter === "all" || reservation.equipmentId === equipmentFilter)
+        .map((reservation) => reservation.periodId)
+    );
+
+    return periods
+      .filter((period) => ids.has(period.id))
+      .sort((a, b) => a.order - b.order);
+  }, [baseFutureReservations, periods, equipmentFilter]);
 
   const getEquipmentName = (equipmentId: string) => {
     return equipments.find(e => e.id === equipmentId)?.name || "Equipamento";
@@ -114,6 +155,8 @@ export function ManageEquipmentModal({
     setPinError(false);
     setEquipmentToDelete(null);
     setReservationToCancel(null);
+    setEquipmentFilter("all");
+    setPeriodFilter("all");
     setNewName("");
     setNewDescription("");
     onClose();
@@ -125,6 +168,8 @@ export function ManageEquipmentModal({
       setPin("");
     } else {
       setViewState("menu");
+      setEquipmentFilter("all");
+      setPeriodFilter("all");
       setNewName("");
       setNewDescription("");
     }
@@ -357,7 +402,49 @@ export function ManageEquipmentModal({
           )}
 
           {viewState === "cancelReservation" && (
-            <div className="py-4">
+            <div className="py-4 space-y-3">
+              {equipmentsWithReservations.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Filtrar por equipamento</Label>
+                  <Select
+                    value={equipmentFilter}
+                    onValueChange={(value) => setEquipmentFilter(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione um equipamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os equipamentos</SelectItem>
+                      {equipmentsWithReservations.map((equipment) => (
+                        <SelectItem key={equipment.id} value={equipment.id}>
+                          {equipment.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {periodsWithReservations.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Filtrar por turno</Label>
+                  <Select
+                    value={periodFilter}
+                    onValueChange={(value) => setPeriodFilter(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione um turno" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os turnos</SelectItem>
+                      {periodsWithReservations.map((period) => (
+                        <SelectItem key={period.id} value={period.id}>
+                          {period.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               {futureReservations.length === 0 ? (
                 <p className="text-center text-muted-foreground">
                   Nenhum agendamento futuro encontrado
