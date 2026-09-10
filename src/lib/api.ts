@@ -134,6 +134,13 @@ export const deleteReservation = async (id: string) => {
   });
 };
 
+export const deleteBatchReservations = async (ids: string[]) => {
+  return await apiRequest('/api/reservations/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
+};
+
 export const checkLessonAvailability = async (
   equipmentId: string,
   date: string,

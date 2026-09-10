@@ -253,6 +253,25 @@ app.post('/api/reservations/batch', async (req, res) => {
   }
 });
 
+app.post('/api/reservations/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ error: 'Nenhum agendamento informado' });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('reservations')
+      .delete()
+      .in('id', ids);
+    if (error) throw error;
+    res.json({ success: true, deleted: ids.length });
+  } catch (error: unknown) {
+    res.status(500).json({ error: errMsg(error) });
+  }
+});
+
 app.delete('/api/reservations/:id', async (req, res) => {
   try {
     const { error } = await supabase

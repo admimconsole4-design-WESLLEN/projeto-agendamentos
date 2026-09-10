@@ -31,8 +31,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, ArrowLeft, Plus, Minus, Loader2, CalendarX } from "lucide-react";
-import { Equipment, Reservation, Period, deleteEquipment, createEquipment, deleteReservation } from "@/lib/supabase";
+import { Trash2, ArrowLeft, Plus, Minus, Loader2, CalendarX, ListChecks, Circle, CheckCircle2 } from "lucide-react";
+import { Equipment, Reservation, Period, deleteEquipment, createEquipment, deleteReservation, deleteBatchReservations } from "@/lib/supabase";
 import { toast } from "sonner";
 import { format, parse, isAfter, isToday, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -67,6 +67,10 @@ export function ManageEquipmentModal({
   const [isCanceling, setIsCanceling] = useState(false);
   const [equipmentFilter, setEquipmentFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   
   // Add equipment form state
   const [newName, setNewName] = useState("");
@@ -149,6 +153,23 @@ export function ManageEquipmentModal({
     }
   };
 
+  const toggleReservationSelection = (reservationId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(reservationId)) {
+        next.delete(reservationId);
+      } else {
+        next.add(reservationId);
+      }
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
   const handleClose = () => {
     setPin("");
     setViewState("pin");
@@ -157,6 +178,8 @@ export function ManageEquipmentModal({
     setReservationToCancel(null);
     setEquipmentFilter("all");
     setPeriodFilter("all");
+    setBulkConfirmOpen(false);
+    exitSelectionMode();
     setNewName("");
     setNewDescription("");
     onClose();
@@ -170,6 +193,8 @@ export function ManageEquipmentModal({
       setViewState("menu");
       setEquipmentFilter("all");
       setPeriodFilter("all");
+      setBulkConfirmOpen(false);
+      exitSelectionMode();
       setNewName("");
       setNewDescription("");
     }
@@ -204,6 +229,24 @@ export function ManageEquipmentModal({
       toast.error("Erro ao cancelar agendamento");
     } finally {
       setIsCanceling(false);
+    }
+  };
+
+  const handleBulkCancelReservation = async () => {
+    if (selectedIds.size === 0) return;
+
+    setIsBulkDeleting(true);
+    try {
+      await deleteBatchReservations(Array.from(selectedIds));
+      toast.success(`${selectedIds.size} agendamento(s) cancelado(s) com sucesso`);
+      onEquipmentChanged();
+      setBulkConfirmOpen(false);
+      exitSelectionMode();
+    } catch (error) {
+      toast.error("Erro ao cancelar agendamentos");
+      setBulkConfirmOpen(false);
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -450,31 +493,99 @@ export function ManageEquipmentModal({
                   Nenhum agendamento futuro encontrado
                 </p>
               ) : (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {futureReservations.map((reservation) => (
-                    <div
-                      key={reservation.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{reservation.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {getEquipmentName(reservation.equipmentId)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(parse(reservation.date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy", { locale: ptBR })} • {getPeriodName(reservation.periodId)} - {getLessonLabel(reservation.periodId, reservation.lessonNumber)}
-                        </p>
+                <>
+                  {selectionMode ? (
+                    <div className="flex items-center justify-between gap-2 rounded-lg border bg-muted/50 p-2">
+                      <p className="text-sm font-medium">
+                        {selectedIds.size} selecionado(s)
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={exitSelectionMode}
+                        >
+                          Voltar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={selectedIds.size === 0 || isBulkDeleting}
+                          onClick={() => setBulkConfirmOpen(true)}
+                        >
+                          {isBulkDeleting ? (
+                            <>
+                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                              Cancelando...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="mr-1 h-4 w-4" />
+                              Excluir ({selectedIds.size})
+                            </>
+                          )}
+                        </Button>
                       </div>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => setReservationToCancel(reservation)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setSelectionMode(true)}
+                    >
+                      <ListChecks className="mr-2 h-4 w-4" />
+                      Selecionar vários
+                    </Button>
+                  )}
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {futureReservations.map((reservation) => {
+                      const isSelected = selectedIds.has(reservation.id);
+                      return (
+                        <div
+                          key={reservation.id}
+                          className={`flex items-center justify-between p-3 rounded-lg border bg-card ${
+                            selectionMode && isSelected ? "border-primary ring-1 ring-primary" : ""
+                          }`}
+                          onClick={
+                            selectionMode
+                              ? () => toggleReservationSelection(reservation.id)
+                              : undefined
+                          }
+                          role={selectionMode ? "button" : undefined}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {selectionMode && (
+                              isSelected ? (
+                                <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
+                              ) : (
+                                <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />
+                              )
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{reservation.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {getEquipmentName(reservation.equipmentId)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(parse(reservation.date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy", { locale: ptBR })} • {getPeriodName(reservation.periodId)} - {getLessonLabel(reservation.periodId, reservation.lessonNumber)}
+                              </p>
+                            </div>
+                          </div>
+                          {!selectionMode && (
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => setReservationToCancel(reservation)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -502,6 +613,33 @@ export function ManageEquipmentModal({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={bulkConfirmOpen}
+        onOpenChange={(open) => {
+          if (!isBulkDeleting) setBulkConfirmOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar cancelamento múltiplo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar {selectedIds.size} agendamento(s)?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkCancelReservation}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? "Cancelando..." : `Cancelar ${selectedIds.size} Agendamento(s)`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
