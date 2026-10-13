@@ -63,6 +63,13 @@ export const createEquipment = async (name: string, description?: string) => {
   });
 };
 
+export const updateEquipment = async (id: string, name: string, description?: string) => {
+  return await apiRequest(`/api/equipments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name, description }),
+  });
+};
+
 export const deleteEquipment = async (id: string) => {
   return await apiRequest(`/api/equipments/${id}`, {
     method: 'DELETE',

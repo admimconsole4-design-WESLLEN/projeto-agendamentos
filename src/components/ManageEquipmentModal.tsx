@@ -31,8 +31,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, ArrowLeft, Plus, Minus, Loader2, CalendarX, ListChecks, Circle, CheckCircle2 } from "lucide-react";
-import { Equipment, Reservation, Period, deleteEquipment, createEquipment, deleteReservation, deleteBatchReservations } from "@/lib/supabase";
+import { Trash2, ArrowLeft, Plus, Minus, Loader2, CalendarX, ListChecks, Circle, CheckCircle2, Pencil } from "lucide-react";
+import { Equipment, Reservation, Period, deleteEquipment, createEquipment, updateEquipment, deleteReservation, deleteBatchReservations } from "@/lib/supabase";
 import { toast } from "sonner";
 import { format, parse, isAfter, isToday, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,7 +48,7 @@ interface ManageEquipmentModalProps {
 
 const CORRECT_PIN = "0705";
 
-type ViewState = "pin" | "menu" | "add" | "delete" | "cancelReservation";
+type ViewState = "pin" | "menu" | "add" | "edit" | "delete" | "cancelReservation";
 
 export function ManageEquipmentModal({
   isOpen,
@@ -76,6 +76,12 @@ export function ManageEquipmentModal({
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+
+  // Edit equipment form state
+  const [equipmentToEdit, setEquipmentToEdit] = useState<Equipment | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   // Filter future reservations only (hoje ou datas futuras)
   const baseFutureReservations = useMemo(() => {
@@ -182,6 +188,9 @@ export function ManageEquipmentModal({
     exitSelectionMode();
     setNewName("");
     setNewDescription("");
+    setEquipmentToEdit(null);
+    setEditName("");
+    setEditDescription("");
     onClose();
   };
 
@@ -190,6 +199,12 @@ export function ManageEquipmentModal({
       setViewState("pin");
       setPin("");
     } else {
+      if (viewState === "edit" && equipmentToEdit) {
+        setEquipmentToEdit(null);
+        setEditName("");
+        setEditDescription("");
+        return;
+      }
       setViewState("menu");
       setEquipmentFilter("all");
       setPeriodFilter("all");
@@ -197,6 +212,9 @@ export function ManageEquipmentModal({
       exitSelectionMode();
       setNewName("");
       setNewDescription("");
+      setEquipmentToEdit(null);
+      setEditName("");
+      setEditDescription("");
     }
   };
 
@@ -271,6 +289,36 @@ export function ManageEquipmentModal({
     }
   };
 
+  const openEditForm = (equipment: Equipment) => {
+    setEquipmentToEdit(equipment);
+    setEditName(equipment.name);
+    setEditDescription(equipment.description ?? "");
+  };
+
+  const handleEditEquipment = async () => {
+    if (!equipmentToEdit) return;
+
+    if (!editName.trim()) {
+      toast.error("Nome do equipamento é obrigatório");
+      return;
+    }
+
+    setIsEditing(true);
+    try {
+      await updateEquipment(equipmentToEdit.id, editName.trim(), editDescription.trim() || undefined);
+      toast.success(`"${editName.trim()}" atualizado com sucesso`);
+      onEquipmentChanged();
+      setEquipmentToEdit(null);
+      setEditName("");
+      setEditDescription("");
+      setViewState("menu");
+    } catch (error) {
+      toast.error("Erro ao atualizar equipamento");
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
   const getTitle = () => {
     switch (viewState) {
       case "pin":
@@ -279,6 +327,8 @@ export function ManageEquipmentModal({
         return "Gerenciar";
       case "add":
         return "Adicionar Equipamento";
+      case "edit":
+        return "Editar Equipamento";
       case "delete":
         return "Remover Equipamento";
       case "cancelReservation":
@@ -347,6 +397,17 @@ export function ManageEquipmentModal({
               <Button
                 variant="outline"
                 className="w-full justify-start gap-3 h-14"
+                onClick={() => setViewState("edit")}
+              >
+                <Pencil className="h-5 w-5 text-blue-500" />
+                <div className="text-left">
+                  <p className="font-medium">Editar Equipamento</p>
+                  <p className="text-xs text-muted-foreground">Alterar nome ou descrição</p>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 h-14"
                 onClick={() => setViewState("delete")}
               >
                 <Minus className="h-5 w-5 text-destructive" />
@@ -406,6 +467,79 @@ export function ManageEquipmentModal({
                   </>
                 )}
               </Button>
+            </div>
+          )}
+
+          {viewState === "edit" && (
+            <div className="py-4">
+              {equipmentToEdit ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Nome do Equipamento *</Label>
+                    <Input
+                      id="edit-name"
+                      placeholder="Ex: Notebook Dell"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-description">Descrição (opcional)</Label>
+                    <Textarea
+                      id="edit-description"
+                      placeholder="Ex: Para uso em sala de aula"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={handleEditEquipment}
+                    disabled={isEditing || !editName.trim()}
+                  >
+                    {isEditing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Salvar Alterações
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : equipments.length === 0 ? (
+                <p className="text-center text-muted-foreground">
+                  Nenhum equipamento cadastrado
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {equipments.map((equipment) => (
+                    <div
+                      key={equipment.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    >
+                      <div>
+                        <p className="font-medium">{equipment.name}</p>
+                        {equipment.description && (
+                          <p className="text-sm text-muted-foreground">
+                            {equipment.description}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => openEditForm(equipment)}
+                      >
+                        <Pencil className="h-4 w-4 text-blue-500" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

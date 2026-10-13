@@ -102,6 +102,29 @@ app.post('/api/equipments', async (req, res) => {
   }
 });
 
+app.put('/api/equipments/:id', async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: 'Nome é obrigatório' });
+    }
+    const { data, error } = await supabase
+      .from('equipments')
+      .update({
+        name: String(name).trim(),
+        description: description ? String(description).trim() : null,
+      })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Equipamento não encontrado' });
+    res.json(toEquipment(data));
+  } catch (error: unknown) {
+    res.status(500).json({ error: errMsg(error) });
+  }
+});
+
 app.delete('/api/equipments/:id', async (req, res) => {
   try {
     const { error } = await supabase
