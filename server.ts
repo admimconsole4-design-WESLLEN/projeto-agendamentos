@@ -19,7 +19,11 @@ const supabase = createClient(
 );
 
 function errMsg(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null && 'message' in e) {
+    return String((e as { message: unknown }).message);
+  }
+  return String(e);
 }
 
 type DbRow = Record<string, unknown>;
@@ -29,6 +33,7 @@ function toEquipment(row: DbRow) {
     id: row.id,
     name: row.name,
     description: (row.description as string | null) ?? null,
+    active: row.active === undefined || row.active === null ? true : Boolean(row.active),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -118,6 +123,34 @@ app.put('/api/equipments/:id', async (req, res) => {
       .select()
       .single();
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Equipamento não encontrado' });
+    res.json(toEquipment(data));
+  } catch (error: unknown) {
+    res.status(500).json({ error: errMsg(error) });
+  }
+});
+
+app.patch('/api/equipments/:id/status', async (req, res) => {
+  try {
+    const { active } = req.body;
+    if (typeof active !== 'boolean') {
+      return res.status(400).json({ error: 'Status inválido' });
+    }
+    const { data, error } = await supabase
+      .from('equipments')
+      .update({ active })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) {
+      const msg = errMsg(error);
+      if (msg.includes('active')) {
+        return res.status(500).json({
+          error: 'Coluna "active" não encontrada. Execute o SQL de supabase/add_equipment_active.sql no Supabase.',
+        });
+      }
+      throw error;
+    }
     if (!data) return res.status(404).json({ error: 'Equipamento não encontrado' });
     res.json(toEquipment(data));
   } catch (error: unknown) {

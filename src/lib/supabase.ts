@@ -4,6 +4,7 @@ export type Equipment = {
   id: string;
   name: string;
   description: string | null;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 };

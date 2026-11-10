@@ -31,8 +31,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, ArrowLeft, Plus, Minus, Loader2, CalendarX, ListChecks, Circle, CheckCircle2, Pencil } from "lucide-react";
-import { Equipment, Reservation, Period, deleteEquipment, createEquipment, updateEquipment, deleteReservation, deleteBatchReservations } from "@/lib/supabase";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, ArrowLeft, Plus, Minus, Loader2, CalendarX, ListChecks, Circle, CheckCircle2, Pencil, Power } from "lucide-react";
+import { Equipment, Reservation, Period, deleteEquipment, createEquipment, updateEquipment, setEquipmentActive, deleteReservation, deleteBatchReservations } from "@/lib/supabase";
 import { toast } from "sonner";
 import { format, parse, isAfter, isToday, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,7 +50,7 @@ interface ManageEquipmentModalProps {
 
 const CORRECT_PIN = "0705";
 
-type ViewState = "pin" | "menu" | "add" | "edit" | "delete" | "cancelReservation";
+type ViewState = "pin" | "menu" | "add" | "edit" | "toggleActive" | "delete" | "cancelReservation";
 
 export function ManageEquipmentModal({
   isOpen,
@@ -82,6 +84,9 @@ export function ManageEquipmentModal({
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+
+  // Toggle active state
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Filter future reservations only (hoje ou datas futuras)
   const baseFutureReservations = useMemo(() => {
@@ -191,6 +196,7 @@ export function ManageEquipmentModal({
     setEquipmentToEdit(null);
     setEditName("");
     setEditDescription("");
+    setTogglingId(null);
     onClose();
   };
 
@@ -215,6 +221,7 @@ export function ManageEquipmentModal({
       setEquipmentToEdit(null);
       setEditName("");
       setEditDescription("");
+      setTogglingId(null);
     }
   };
 
@@ -319,6 +326,27 @@ export function ManageEquipmentModal({
     }
   };
 
+  const handleToggleActive = async (equipment: Equipment) => {
+    const newActive = !equipment.active;
+
+    setTogglingId(equipment.id);
+    try {
+      await setEquipmentActive(equipment.id, newActive);
+      toast.success(
+        `"${equipment.name}" ${newActive ? "ativado" : "inativado"} com sucesso`
+      );
+      onEquipmentChanged();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? `Erro ao atualizar status: ${error.message}`
+          : "Erro ao atualizar status do equipamento"
+      );
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const getTitle = () => {
     switch (viewState) {
       case "pin":
@@ -329,6 +357,8 @@ export function ManageEquipmentModal({
         return "Adicionar Equipamento";
       case "edit":
         return "Editar Equipamento";
+      case "toggleActive":
+        return "Ativar/Inativar Equipamento";
       case "delete":
         return "Remover Equipamento";
       case "cancelReservation":
@@ -414,6 +444,17 @@ export function ManageEquipmentModal({
                 <div className="text-left">
                   <p className="font-medium">Remover Equipamento</p>
                   <p className="text-xs text-muted-foreground">Excluir equipamento existente</p>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 h-14"
+                onClick={() => setViewState("toggleActive")}
+              >
+                <Power className="h-5 w-5 text-orange-500" />
+                <div className="text-left">
+                  <p className="font-medium">Ativar/Inativar Equipamento</p>
+                  <p className="text-xs text-muted-foreground">Controlar exibição nos agendamentos</p>
                 </div>
               </Button>
               <Button
@@ -540,6 +581,50 @@ export function ManageEquipmentModal({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {viewState === "toggleActive" && (
+            <div className="py-4">
+              {equipments.length === 0 ? (
+                <p className="text-center text-muted-foreground">
+                  Nenhum equipamento cadastrado
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {equipments.map((equipment) => (
+                    <div
+                      key={equipment.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border bg-card ${
+                        !equipment.active ? "opacity-60" : ""
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{equipment.name}</p>
+                          <Badge variant={equipment.active ? "secondary" : "outline"}>
+                            {equipment.active ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </div>
+                        {equipment.description && (
+                          <p className="text-sm text-muted-foreground">
+                            {equipment.description}
+                          </p>
+                        )}
+                      </div>
+                      <Switch
+                        checked={equipment.active}
+                        disabled={togglingId === equipment.id}
+                        onCheckedChange={() => handleToggleActive(equipment)}
+                        aria-label={`Ativar ou inativar ${equipment.name}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                Equipamentos inativos não aparecem para reserva
+              </p>
             </div>
           )}
 

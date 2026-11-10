@@ -102,6 +102,9 @@ const Home = () => {
     setReservationModalOpen(true);
   };
 
+  // Apenas equipamentos ativos aparecem para reserva
+  const activeEquipments = equipments.filter((e) => e.active);
+
   const handleCreateReservation = async (data: {
     equipmentId: string;
     name: string;
@@ -258,7 +261,7 @@ const Home = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {equipments.map((equipment) => (
+                {activeEquipments.map((equipment) => (
                   <EquipmentCard
                     key={equipment.id}
                     equipment={equipment}
@@ -273,6 +276,16 @@ const Home = () => {
                   <CardContent className="py-8 sm:py-12 text-center">
                     <p className="text-sm sm:text-base text-muted-foreground">
                       Nenhum equipamento cadastrado. Clique no botão "Adicionar Equipamento" para começar.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {equipments.length > 0 && activeEquipments.length === 0 && (
+                <Card className="border-2 border-dashed border-primary/30">
+                  <CardContent className="py-8 sm:py-12 text-center">
+                    <p className="text-sm sm:text-base text-muted-foreground">
+                      Nenhum equipamento ativo. Use o botão "Gerenciar" para ativar um equipamento.
                     </p>
                   </CardContent>
                 </Card>
@@ -310,7 +323,7 @@ const Home = () => {
         open={calendarReservationModalOpen}
         onClose={() => setCalendarReservationModalOpen(false)}
         selectedDate={date}
-        equipments={equipments}
+        equipments={activeEquipments}
         onSubmit={handleCreateReservation}
       />
 

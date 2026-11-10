@@ -43,8 +43,8 @@ async function apiRequest(endpoint: string, options?: RequestInit) {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-    throw new Error(error.error || 'Erro na requisição');
+    const error = await response.json().catch(() => ({ error: '' }));
+    throw new Error(error.error || `Erro ${response.status} na requisição`);
   }
 
   return response.json();
@@ -67,6 +67,13 @@ export const updateEquipment = async (id: string, name: string, description?: st
   return await apiRequest(`/api/equipments/${id}`, {
     method: 'PUT',
     body: JSON.stringify({ name, description }),
+  });
+};
+
+export const setEquipmentActive = async (id: string, active: boolean) => {
+  return await apiRequest(`/api/equipments/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ active }),
   });
 };
 
